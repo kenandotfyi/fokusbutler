@@ -1,0 +1,4 @@
+Phosphor Icons are licensed under the MIT License.
+Copyright (c) 2020 Phosphor Icons
+
+https://github.com/phosphor-icons/core/blob/main/LICENSE

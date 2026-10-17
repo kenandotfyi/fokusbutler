@@ -1,0 +1,28 @@
+.fokusbutler-admin { color: var(--fokus-text, #222); }
+.fokusbutler-admin .fokusbutler-admin-header h1 { margin: 0 0 0.35em; }
+.fokusbutler-admin .fokusbutler-admin-header p { color: var(--fokus-muted, #666); }
+.fokusbutler-admin .fokusbutler-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0; }
+.fokusbutler-admin .fokusbutler-nav a { display: inline-block; padding: 7px 10px; border: 1px solid var(--fokus-border, #ddd); border-radius: 4px; text-decoration: none; }
+.fokusbutler-admin .fokusbutler-nav a:hover,
+.fokusbutler-admin .fokusbutler-nav a[aria-current="page"] { background: var(--fokus-surface-soft, #eee); }
+.fokusbutler-admin .fokusbutler-module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.fokusbutler-admin .fokusbutler-module-card { padding: 16px; border: 1px solid var(--fokus-border, #ddd); border-radius: 4px; background: var(--fokus-surface, #fff); }
+.fokusbutler-admin .fokusbutler-module-card h3 { margin: 0 0 8px; }
+.fokusbutler-admin .fokusbutler-module-card p { color: var(--fokus-muted, #666); }
+.fokusbutler-admin .fokusbutler-module-card > a { display: block; margin-top: 12px; }
+.fokusbutler-admin .fokusbutler-notice { padding: 10px 12px; border: 1px solid var(--fokus-border, #ddd); border-radius: 4px; background: var(--fokus-surface-soft, #eee); }
+.fokusbutler-admin .fokusbutler-module-section { margin-top: 32px; }
+.fokusbutler-admin .fokusbutler-module-section > p { color: var(--fokus-muted, #666); }
+.fokusbutler-admin .fokusbutler-integration-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.fokusbutler-admin .fokusbutler-integration-grid article { min-width: 0; padding: 16px; border: 1px solid var(--fokus-border, #ccc); border-radius: 4px; background: var(--fokus-surface, #fff); }
+.fokusbutler-admin .fokusbutler-integration-grid h3 { margin: 0 0 8px; font-size: 15px; }
+.fokusbutler-admin .fokusbutler-integration-grid h3 span { float: right; color: var(--fokus-muted, #666); font-size: 12px; font-weight: 400; }
+.fokusbutler-admin .fokusbutler-integration-grid p { margin: 8px 0 0; color: var(--fokus-muted, #666); font-size: 13px; }
+.fokusbutler-admin .fokusbutler-adapter-toggle { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; cursor: pointer; }
+.fokusbutler-admin .fokusbutler-integration-status-ready { color: #18743a; }
+.fokusbutler-admin .fokusbutler-integration-status-missing { color: #b42318; }
+.fokusbutler-admin .fokusbutler-integration-status-unavailable { color: #9a6700; }
+html[data-theme="dark"] .fokusbutler-admin .fokusbutler-integration-status-ready { color: #75d399; }
+html[data-theme="dark"] .fokusbutler-admin .fokusbutler-integration-status-missing { color: #ff938a; }
+html[data-theme="dark"] .fokusbutler-admin .fokusbutler-integration-status-unavailable { color: #e9bc62; }
+@media (max-width: 650px) { .fokusbutler-admin .fokusbutler-integration-grid { grid-template-columns: 1fr; } }

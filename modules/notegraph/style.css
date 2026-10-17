@@ -1,0 +1,271 @@
+:root {
+    --simpl-notegraph-z-index: 14000;
+}
+
+.notegraph-trigger svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.notegraph-trigger svg.phosphor-duotone {
+    fill: currentColor;
+    stroke: none;
+}
+
+.notegraph-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: var(--simpl-notegraph-z-index, 14000);
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    background: rgb(0 0 0 / 62%);
+}
+
+.notegraph-window {
+    display: flex;
+    flex-direction: column;
+    width: 94vw;
+    max-width: 1100px;
+    height: 90vh;
+    max-height: 760px;
+    min-height: 360px;
+    overflow: hidden;
+    border: 1px solid #262626;
+    color: #262626;
+    background: #fafafa;
+    box-shadow: 0 20px 60px rgb(0 0 0 / 35%);
+}
+
+.notegraph-header {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 0.8rem;
+    border-bottom: 1px solid #dfdfdf;
+    background: #fff;
+}
+
+.notegraph-heading {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notegraph-toolbar {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.notegraph-window button {
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid #c2c2c2;
+    border-radius: 0;
+    color: inherit;
+    background: #fff;
+    font: inherit;
+    cursor: pointer;
+}
+
+.notegraph-window button:hover,
+.notegraph-window button:focus-visible {
+    color: #fff;
+    border-color: #373737;
+    background: #373737;
+    outline: none;
+}
+
+.notegraph-window button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.notegraph-depth-label {
+    min-width: 4.5rem;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.notegraph-window .notegraph-close {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.notegraph-status,
+.notegraph-footer {
+    flex: 0 0 auto;
+    padding: 0.45rem 0.8rem;
+    color: #5f5f5f;
+    font-size: 0.82rem;
+}
+
+.notegraph-status {
+    border-bottom: 1px solid #e7e7e7;
+    background: #f4f4f4;
+}
+
+.notegraph-stage {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background-color: #fafafa;
+    background-image: radial-gradient(#dfdfdf 0.8px, transparent 0.8px);
+    background-size: 22px 22px;
+}
+
+.notegraph-stage svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    cursor: grab;
+}
+
+.notegraph-stage svg.is-panning {
+    cursor: grabbing;
+}
+
+.notegraph-link {
+    fill: none;
+    stroke: #a1a1a1;
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+}
+
+.notegraph-arrowhead {
+    fill: #656565;
+}
+
+.notegraph-node {
+    cursor: pointer;
+    outline: none;
+}
+
+.notegraph-node circle {
+    fill: #6b6b6b;
+    stroke: #fafafa;
+    stroke-width: 3px;
+    vector-effect: non-scaling-stroke;
+    transition: fill 120ms ease, stroke 120ms ease;
+}
+
+.notegraph-node.is-root circle {
+    fill: #858585;
+    stroke: #fff;
+    stroke-width: 4px;
+}
+
+.notegraph-node:hover circle,
+.notegraph-node:focus-visible circle {
+    fill: #494949;
+    stroke: #c3c3c3;
+}
+
+.notegraph-node.is-root:hover circle,
+.notegraph-node.is-root:focus-visible circle {
+    fill: #616161;
+}
+
+.notegraph-node text {
+    fill: #303030;
+    font: 12px/1.2 sans-serif;
+    pointer-events: none;
+    text-anchor: middle;
+}
+
+.notegraph-footer {
+    border-top: 1px solid #dfdfdf;
+    background: #fff;
+    text-align: center;
+}
+
+html[data-theme="dark"] .notegraph-window {
+    color: #ececec;
+    border-color: #1a1a1a;
+    background: #252525;
+}
+
+html[data-theme="dark"] .notegraph-header,
+html[data-theme="dark"] .notegraph-footer {
+    border-color: #484848;
+    background: #313131;
+}
+
+html[data-theme="dark"] .notegraph-status {
+    color: #c9c9c9;
+    border-color: #484848;
+    background: #2c2c2c;
+}
+
+html[data-theme="dark"] .notegraph-window button {
+    color: #ececec;
+    border-color: #606060;
+    background: #363636;
+}
+
+html[data-theme="dark"] .notegraph-window button:hover,
+html[data-theme="dark"] .notegraph-window button:focus-visible {
+    color: #111;
+    border-color: #fff;
+    background: #fff;
+}
+
+html[data-theme="dark"] .notegraph-stage {
+    background-color: #232323;
+    background-image: radial-gradient(#494949 0.8px, transparent 0.8px);
+}
+
+html[data-theme="dark"] .notegraph-link {
+    stroke: #868686;
+}
+
+html[data-theme="dark"] .notegraph-arrowhead {
+    fill: #b7b7b7;
+}
+
+html[data-theme="dark"] .notegraph-node circle {
+    stroke: #232323;
+}
+
+html[data-theme="dark"] .notegraph-node text {
+    fill: #ececec;
+}
+
+@media (max-width: 760px) {
+    .notegraph-backdrop {
+        padding: 0;
+    }
+
+    .notegraph-window {
+        width: 100vw;
+        height: 100vh;
+        min-height: 0;
+        border: 0;
+    }
+
+    .notegraph-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .notegraph-toolbar {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}

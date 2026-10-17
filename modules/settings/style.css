@@ -1,0 +1,54 @@
+.fokus-settings { max-width: 1000px; margin: 0 auto; color: var(--fokus-text, #222); }
+.fokus-settings h1 { margin-bottom: 8px; }
+.fokus-settings-unsaved { display: inline-block; margin: 0 0 12px 10px; color: #a14b00; font-size: 0.9em; font-weight: 600; }
+.fokus-settings-unsaved[hidden] { display: none; }
+html[data-theme="dark"] .fokus-settings-unsaved { color: #f0b45f; }
+.fokus-settings p { color: var(--fokus-muted, #666); }
+.fokus-settings-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 24px 0; padding: 8px 0; border-bottom: 1px solid var(--fokus-border, #ddd); }
+.fokus-settings-nav a { padding: 7px 12px; border-radius: var(--fokus-control-radius, 4px); color: inherit; background: var(--fokus-surface-soft, #eee); text-decoration: none; }
+.fokus-settings-nav a[aria-current="page"] { background: var(--fokus-accent, #444); color: var(--fokus-on-accent, #fff) !important; }
+.fokus-settings-section { scroll-margin-top: 20px; margin: 0 0 36px; }
+.fokus-settings-section[hidden] { display: none !important; }
+.dokuwiki .fokus-settings fieldset { width: 100%; box-sizing: border-box; text-align: left; min-width: 0; margin: 22px 0; padding: 18px; border: 1px solid var(--fokus-border, #ddd); border-radius: var(--fokus-control-radius, 4px); background: var(--fokus-surface, #fff); }
+.fokus-settings legend { padding: 0 6px; font-size: 14px; font-weight: 600; }
+.fokus-settings-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.fokus-settings-field { display: grid; grid-template-columns: minmax(180px, 34%) minmax(0, 1fr); align-items: center; gap: 6px 16px; min-width: 0; }
+.fokus-settings-field label { display: block; margin: 0; font-size: 13px; font-weight: 500; }
+.fokus-settings-control { min-width: 0; }
+.fokus-settings-field small { display: block; color: var(--fokus-muted, #666); font-size: 12px; margin-top: 4px; }
+.fokus-settings-section#fokus-settings-workspace .fokus-settings-fields { grid-template-columns: minmax(150px, 185px) minmax(0, 360px); justify-content: start; align-items: center; column-gap: 10px; }
+.fokus-settings-section#fokus-settings-workspace .fokus-settings-field { display: contents; }
+.fokus-settings-section#fokus-settings-workspace .fokus-settings-field--bool input[type="checkbox"] { margin: 0; }
+.fokus-settings-input { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fokus-settings-field input[type="text"], .fokus-settings-field input[type="number"], .fokus-settings-field select { width: 100%; max-width: 360px; box-sizing: border-box; min-height: 34px; padding: 6px 9px; border: 1px solid var(--fokus-border, #ccc); border-radius: var(--fokus-control-radius, 4px); background: var(--fokus-control-background, #ffffff); color: var(--fokus-control-text, #333333); font: inherit; }
+.fokus-settings-field input[type="number"] { max-width: 120px; }
+.fokus-settings-field--color .fokus-settings-input input[type="text"] { flex: 0 0 112px; width: 112px; max-width: 112px; }
+.fokus-settings-field input[type="color"] { flex: 0 0 36px; width: 36px; height: 34px; padding: 2px; border: 1px solid var(--fokus-border, #ccc); border-radius: var(--fokus-control-radius, 4px); background: transparent; cursor: pointer; }
+.fokus-settings-color-themes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.dokuwiki .fokus-settings fieldset.fokus-settings-color-theme { margin-top: 12px; padding: 14px; }
+.fokus-settings-fields--colors { gap: 7px; }
+.fokus-settings-fields--colors .fokus-settings-field { grid-template-columns: minmax(100px, 1fr) 160px; gap: 8px; }
+.fokus-settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.fokus-settings-actions button { padding: 8px 14px; border: 1px solid var(--fokus-border, #ccc); border-radius: var(--fokus-control-radius, 4px); background: var(--fokus-surface-soft, #eee); color: var(--fokus-text, #222); font: inherit; cursor: pointer; }
+.fokus-settings-actions button:first-child { background: var(--fokus-accent, #444); color: var(--fokus-on-accent, #fff); }
+.fokus-settings :disabled { opacity: .55; cursor: not-allowed; }
+.fokus-settings-message, .fokus-settings-error { padding: 12px; border: 1px solid var(--fokus-border, #ccc); border-radius: var(--fokus-control-radius, 4px); }
+.fokus-settings-error { border-color: #b45309; }
+@media(max-width: 850px) { .fokus-settings-color-themes { grid-template-columns: 1fr; gap: 0; } }
+@media(max-width: 650px) {
+    .fokus-settings-field, .fokus-settings-fields--colors .fokus-settings-field { grid-template-columns: minmax(0, 1fr); gap: 5px; }
+    .fokus-settings-section#fokus-settings-workspace .fokus-settings-fields { grid-template-columns: minmax(0, 1fr); row-gap: 5px; }
+}
+
+.fokus-settings-interwiki { grid-column: 1 / -1; min-width: 0; }
+.fokus-settings-interwiki > label { display: block; margin: 14px 0 6px; font-weight: 500; }
+.fokus-settings-interwiki > select { min-height: 34px; width: 100%; box-sizing: border-box; padding: 6px 9px; background: var(--fokus-canvas, #f4f4f4); color: var(--fokus-text, #222); border: 1px solid var(--fokus-border, #ccc); border-radius: var(--fokus-control-radius, 4px); font: inherit; }
+.fokus-interwiki-panel[hidden] { display: none !important; }
+.fokus-interwiki-panel h4 { margin: 20px 0 16px; }
+.fokus-interwiki-panel fieldset { margin: 12px 0; }
+.fokus-interwiki-color-themes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dokuwiki .fokus-settings .fokus-interwiki-color-theme { min-width: 0; margin: 12px 0; padding: 12px; }
+.fokus-interwiki-color-theme .fokus-settings-fields--colors [data-fokus-interwiki-field] .fokus-settings-field { grid-template-columns: minmax(80px, 1fr) 160px; gap: 8px; }
+.dokuwiki .fokus-settings .fokus-interwiki-style-theme { min-width: 0; margin: 16px 0; padding: 12px; }
+@media(max-width: 850px) { .fokus-interwiki-color-themes { grid-template-columns: 1fr; gap: 0; } }
+

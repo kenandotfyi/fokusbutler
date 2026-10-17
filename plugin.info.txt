@@ -1,0 +1,7 @@
+base   fokusbutler
+author Kenan Akinci
+email  hey@kenan.fyi
+date   2026-10-17
+name   Fokus Butler
+desc   Modular Fokus companion: settings, folding, page health, image galleries, graphs, snippets, and Todoist integration.
+url    https://github.com/kenandotfyi

@@ -1,0 +1,35 @@
+<?php
+
+$lang['toolbar_title'] = 'Snips';
+$lang['tag_picker_heading'] = 'Existing tags';
+$lang['snippets_heading'] = 'Snippets';
+$lang['tag_search_placeholder'] = 'Search existing tags…';
+$lang['tag_picker_open'] = 'Open to load tags.';
+$lang['tag_loading'] = 'Loading tags…';
+$lang['tag_empty'] = 'No tags are available yet.';
+$lang['tag_no_matches'] = 'No matching tags.';
+$lang['tag_load_error'] = 'Could not load tags. Close and reopen the picker to retry.';
+$lang['tag_insert_syntax'] = 'Insert tag syntax…';
+$lang['tag_insert_selected'] = 'Insert selected tags';
+$lang['menu'] = 'Snips';
+$lang['heading'] = 'Toolbar snippets';
+$lang['intro'] = 'Create reusable insert and wrap snippets for the editor toolbar. Enabled snippets appear in the Snips menu, alongside the searchable tag picker when the Tag plugin is installed.';
+$lang['storage_note'] = 'Snippets are stored separately from the plugin in conf/plugin/fokusbutler/snips/snippets.json.';
+$lang['snippet'] = 'Snippet';
+$lang['enabled'] = 'Enabled';
+$lang['label'] = 'Label';
+$lang['icon'] = 'Icon';
+$lang['icon_help'] = 'Use a media ID (for example wiki:snips:icons:info.svg), a path under lib/, a plugin-relative path, or an absolute URL. Upload custom icons with the Media Manager.';
+$lang['mode'] = 'Action';
+$lang['mode_insert'] = 'Insert text';
+$lang['mode_wrap'] = 'Wrap selected text';
+$lang['insert_text'] = 'Text to insert';
+$lang['open_text'] = 'Opening text';
+$lang['close_text'] = 'Closing text';
+$lang['add_snippet'] = 'Add snippet';
+$lang['remove'] = 'Remove';
+$lang['move_up'] = 'Move up';
+$lang['move_down'] = 'Move down';
+$lang['save'] = 'Save snippets';
+$lang['saved'] = 'Snippets saved.';
+$lang['save_failed'] = 'Could not save snippets. Check that the DokuWiki configuration directory is writable.';

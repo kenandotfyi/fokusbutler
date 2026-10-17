@@ -1,0 +1,118 @@
+.plugin_snips_admin .plugin_snips_item {
+    margin: 1em 0;
+}
+
+.plugin_snips_admin .plugin_snips_item th {
+    min-width: 10em;
+    text-align: left;
+}
+
+.plugin_snips_admin .plugin_snips_item input[type="text"],
+.plugin_snips_admin .plugin_snips_item select,
+.plugin_snips_admin .plugin_snips_item textarea {
+    box-sizing: border-box;
+    max-width: 48em;
+    width: 100%;
+}
+
+.plugin_snips_admin .plugin_snips_help {
+    margin-top: 0.3em;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.plugin_snips_admin .plugin_snips_icon_preview {
+    display: inline-block;
+    height: 24px;
+    margin-left: 0.6em;
+    vertical-align: middle;
+    width: 24px;
+}
+
+.plugin_snips_admin .plugin_snips_icon_preview[hidden] {
+    display: none;
+}
+
+.plugin_snips_admin .plugin_snips_controls {
+    margin: 0.4em 0 0.8em;
+}
+
+.plugin_snips_admin .plugin_snips_controls button:disabled {
+    opacity: 0.5;
+}
+
+.picker.snips-picker {
+    max-height: 70vh;
+    max-width: 24em;
+    overflow-y: auto;
+    padding: 0.25em;
+}
+
+.picker.snips-picker .pickerbutton {
+    align-items: center;
+    box-sizing: border-box;
+    display: flex;
+    gap: 0.6em;
+    justify-content: flex-start;
+    min-height: 2em;
+    min-width: 12em;
+    padding: 0.35em 0.6em;
+    text-align: left;
+    width: 100%;
+}
+
+.picker.snips-picker .pickerbutton img {
+    height: 16px;
+    object-fit: contain;
+    width: 16px;
+}
+
+.picker.snips-picker .snips-tag-search {
+    background: var(--fokus-control-background, #fff);
+    border: 1px solid var(--fokus-border, #bbb);
+    border-radius: var(--fokus-control-radius, 4px);
+    box-sizing: border-box;
+    color: var(--fokus-control-text, inherit);
+    display: block;
+    margin: 0 0 0.25em;
+    padding: 0.45em 0.6em;
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1;
+}
+
+.picker.snips-picker .snips-tag-status {
+    color: var(--fokus-muted, #666);
+    font-size: 0.9em;
+    padding: 0.35em 0.6em;
+}
+
+.picker.snips-picker .snips-tag-choice.is-selected {
+    background: var(--fokus-control-hover-background, #e8e8e8);
+}
+
+.picker.snips-picker .snips-tag-insert-selected {
+    margin-top: 0.25em;
+}
+
+.picker.snips-picker .snips-tag-heading,
+.picker.snips-picker .snips-snippets-heading {
+    align-items: center;
+    color: var(--fokus-muted, #666);
+    display: flex;
+    font-size: 0.9em;
+    font-weight: 600;
+    gap: 0.45em;
+    padding: 0.45em 0.6em;
+}
+
+.picker.snips-picker .snips-tag-heading img {
+    height: 16px;
+    width: 16px;
+}
+
+.picker.snips-picker .snips-section-divider {
+    border-bottom: 1px solid var(--fokus-border, #bbb);
+    margin: 0.35em 0;
+}

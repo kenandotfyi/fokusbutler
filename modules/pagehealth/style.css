@@ -1,0 +1,19 @@
+.dokuwiki a.wikilink1.pagehealth-empty-link,
+.plugin_nspages li.pagehealth-empty > div.li > a,
+.plugin_nspages li.pagehealth-empty > a {
+    color: var(--pagehealth-empty-color, #89919b);
+    opacity: var(--pagehealth-empty-opacity, 1);
+    font-style: var(--pagehealth-empty-font-style, normal);
+    text-decoration-line: var(--pagehealth-empty-decoration, none);
+    text-decoration-style: var(--pagehealth-empty-decoration-style, solid);
+}
+
+.dokuwiki a.wikilink1.pagehealth-empty-link:hover,
+.plugin_nspages li.pagehealth-empty > div.li > a:hover,
+.plugin_nspages li.pagehealth-empty > a:hover {
+    color: var(--pagehealth-empty-hover-color, #626b76);
+}
+
+.plugin_pagehealth_summary {
+    display: inline-block;
+}
