@@ -72,6 +72,8 @@ Runtime state lives outside the installed plugin folder:
 
 Todoist credentials retain the existing precedence: `/run/secrets/todoist_api_token`, then `TODOIST_API_TOKEN`, then Butler's `todoist_api_token` configuration. The admin page never prints a configured token. Production Docker secret/environment wiring does not change. Set any local configuration token again in the Todoist module; no legacy plugin configuration is read.
 
+The optional standalone **Zotero Bridge** plugin appears in Dependencies, with a **Zotero** navigation link when installed and enabled. Its administration, credentials, synchronization, and index remain plugin-owned. Configure `ZOTERO_API_KEY` in the deployment environment or save the local fallback at **Admin → Zotero Bridge**.
+
 ## Development and verification
 
 PHP module implementations are not placed inside DokuWiki's component discovery folders. Only the thin bridges belong there. Feature actions check their module switch before registering hooks. Keep read-only syntax fallbacks when disabling side effects.

@@ -78,6 +78,9 @@ class admin_plugin_fokusbutler extends DokuWiki_Admin_Plugin
         foreach ($tabs as $id => $entry) {
             echo '<a href="' . hsc(FokusButler_Modules::adminUrl($id)) . '"' . ($selected === $id ? ' aria-current="page"' : '') . '>' . hsc($entry['name']) . '</a>';
         }
+        if (is_dir(DOKU_PLUGIN . 'zoterobridge') && !plugin_isdisabled('zoterobridge')) {
+            echo '<a href="' . hsc(wl('', ['do'=>'admin', 'page'=>'zoterobridge'], true, '&')) . '">Zotero</a>';
+        }
         echo '</nav><div class="fokusbutler-panel" data-fokusbutler-module="' . hsc($selected) . '">';
         if ($selected === 'modules') $this->modulesPanel();
         else {
@@ -145,9 +148,13 @@ class admin_plugin_fokusbutler extends DokuWiki_Admin_Plugin
         $manifest = is_file($file) ? json_decode(file_get_contents($file), true) : [];
         $plugins = $manifest['required'] ?? [];
         $plugins['tag'] = ['name'=>'Tags', 'features'=>['Tag browser'], 'optional'=>true];
+        $plugins['zoterobridge'] = ['name'=>'Zotero Bridge', 'features'=>['Local document and annotation index'], 'optional'=>true];
         echo '<div class="fokusbutler-integration-grid">';
         foreach ($plugins as $id => $plugin) {
             $this->pluginCardStart($id, $plugin, empty($plugin['optional']) ? 'Required' : 'Optional');
+            if ($id === 'zoterobridge' && is_dir(DOKU_PLUGIN . $id) && !plugin_isdisabled($id)) {
+                echo '<p><a href="' . hsc(wl('', ['do'=>'admin', 'page'=>'zoterobridge'], true, '&')) . '">Zotero settings</a></p>';
+            }
             echo '</article>';
         }
         echo '</div></section>';
