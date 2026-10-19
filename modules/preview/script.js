@@ -30,8 +30,9 @@
     }
 
     function hovered(record) {
+        const focusedSource = record.source === document.activeElement || record.source.getRootNode()?.activeElement === record.source;
         if (record.element.matches(':hover') || record.source.matches(':hover')
-            || (record.keyboard && (record.element.contains(document.activeElement) || record.source === document.activeElement))) return true;
+            || (record.keyboard && (record.element.contains(document.activeElement) || focusedSource))) return true;
         return Array.from(windows).some(child => child.parent === record && hovered(child));
     }
 
@@ -102,8 +103,8 @@
         } finally { record.body.removeAttribute('aria-busy'); }
     }
 
-    function open(source, keyboard = false) {
-        const target = targetFor(source);
+    function open(source, keyboard = false, providedTarget = null) {
+        const target = providedTarget || targetFor(source);
         if (!target) return;
         const existing = Array.from(windows).find(record => record.source === source);
         if (existing) { keep(existing); existing.element.style.zIndex = ++layer; return existing; }
@@ -191,6 +192,22 @@
         return record;
     }
 
+    function begin(source, target, keyboard = false) {
+        if (!source || !target) return;
+        if (pending?.source === source) return;
+        clearTimeout(pending?.timer);
+        const record = Array.from(windows).find(item => item.source === source);
+        if (record) { keep(record); return; }
+        pending = { source, timer: setTimeout(() => { pending = null; if (source.isConnected) open(source, keyboard, target); }, config.openDelay ?? 750) };
+    }
+
+    function end(source, relatedTarget = null) {
+        if (!source || (relatedTarget && source.contains(relatedTarget))) return;
+        if (pending?.source === source) { clearTimeout(pending.timer); pending = null; }
+        const record = Array.from(windows).find(item => item.source === source);
+        if (record) dismissLater(record);
+    }
+
     function enter(event) {
         if (event.pointerType === 'touch') return;
         const link = event.target.closest?.('a[href]');
@@ -199,18 +216,13 @@
         try { target = targetFor(link); } catch (_) { return; }
         if (!target) return;
         link.removeAttribute('title');
-        clearTimeout(pending?.timer);
-        const record = Array.from(windows).find(item => item.source === link);
-        if (record) { keep(record); return; }
-        pending = { link, timer: setTimeout(() => { pending = null; if (link.isConnected) open(link, event.type === 'focusin'); }, config.openDelay ?? 750) };
+        begin(link, target, event.type === 'focusin');
     }
 
     function leave(event) {
         const link = event.target.closest?.('a[href]');
-        if (!link || link.contains(event.relatedTarget)) return;
-        if (pending?.link === link) { clearTimeout(pending.timer); pending = null; }
-        const record = Array.from(windows).find(item => item.source === link);
-        if (record) dismissLater(record);
+        if (!link) return;
+        end(link, event.relatedTarget);
     }
 
     function init() {
@@ -241,7 +253,15 @@
                 }
             }
         });
-        window.FokusButlerPreviews = { open };
+        window.FokusButlerPreviews = {
+            open,
+            hover(source, target, entering, keyboard = false, relatedTarget = null) {
+                if (entering) {
+                    if (relatedTarget && source.contains(relatedTarget)) return;
+                    begin(source, target, keyboard);
+                } else end(source, relatedTarget);
+            },
+        };
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
