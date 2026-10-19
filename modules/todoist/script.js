@@ -133,9 +133,11 @@ function localTimeString(date) {
         $status.removeClass('is-error').text(statusText);
     }
 
-    function loadTaskState(element) {
-        if (element.getAttribute('data-state-requested') === 'true') return;
+    function loadTaskState(element, refresh) {
+        if (element.getAttribute('data-state-loading') === 'true') return;
+        if (!refresh && element.getAttribute('data-state-requested') === 'true') return;
         element.setAttribute('data-state-requested', 'true');
+        element.setAttribute('data-state-loading', 'true');
         const $task = jQuery(element);
         const $status = $task.find('.todoistcompanion-task-status');
 
@@ -158,6 +160,8 @@ function localTimeString(date) {
         }).fail(function () {
             $task.find('.todoistcompanion-task-toggle').prop('disabled', true).attr('aria-busy', 'false');
             $status.addClass('is-error').text('Could not load task status. Reload to try again.');
+        }).always(function () {
+            element.removeAttribute('data-state-loading');
         });
     }
 
@@ -171,12 +175,27 @@ function localTimeString(date) {
 
     jQuery(function () {
         scanTasks(document);
+        window.setInterval(function () {
+            if (document.visibilityState !== 'visible') return;
+            document.querySelectorAll('[data-todoistcompanion-task]').forEach(function (element) {
+                loadTaskState(element, true);
+            });
+        }, 20000);
         const observer = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
                 mutation.addedNodes.forEach(scanTasks);
             });
         });
         observer.observe(document.body, { childList: true, subtree: true });
+
+        jQuery(document).on('click', '.todoistcompanion-expand', function () {
+            const button = this;
+            const details = document.getElementById(button.getAttribute('aria-controls'));
+            if (!details) return;
+            const expanded = button.getAttribute('aria-expanded') === 'true';
+            button.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+            details.hidden = expanded;
+        });
 
         jQuery(document).on('click', '.todoistcompanion-task-toggle:not(:disabled)', function () {
             const $button = jQuery(this);

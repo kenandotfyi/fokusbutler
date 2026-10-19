@@ -83,6 +83,7 @@ Run integration checks against an isolated DokuWiki installation with this plugi
 ```sh
 DOKUWIKI_TEST_ROOT=/path/to/isolated/dokuwiki php tests/integration.php
 node tests/editor.cjs
+php tests/todoist.php
 ```
 
 The integration fixture should provide a `start` page, `md+dw` syntax, the Fokus template, and an `authplain` admin group. The suite checks real component discovery, parsing, admin configuration keys, module fallbacks, asset loading, and toolbar exports. Use an isolated wiki: the tests may initialize DokuWiki metadata and configuration directories. They never call Todoist's API.

@@ -59,25 +59,21 @@
 .todoistcompanion-task-title {
     flex: 1 1 auto;
     color: var(--fokus-accent, #444);
+    font-size: 14px;
 }
 
-.todoistcompanion-task-due {
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: 6px;
-    padding: 2px 6px;
-    border: 1px solid var(--fokus-border, #d8d8d8);
-    border-radius: 4px;
-    color: var(--fokus-muted, #737b86);
-    font-family: var(--fokus-code-font, monospace);
-    font-size: .78em;
-    line-height: 1.4;
+.todoistcompanion-task-date {
+    display: inline-block;
+    color: var(--fokus-secondary-text, #737b86);
+    opacity: .6;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 400;
     white-space: nowrap;
 }
 
-.todoistcompanion-task-due-time {
-    color: var(--fokus-text, #444);
+.todoistcompanion-task-date + .todoistcompanion-task-date {
+    margin-inline-start: .8em;
 }
 
 .todoistcompanion-task.is-completed .todoistcompanion-task-title {
@@ -117,12 +113,6 @@
     border-bottom: 0;
 }
 
-.todoistcompanion-task-page {
-    display: inline-block;
-    margin-left: 1.8em;
-    color: var(--fokus-muted, #737b86);
-    font-size: .9em;
-}
 
 .todoistcompanion-add-dialog {
     box-sizing: border-box;
@@ -274,4 +264,105 @@
 
 html[data-theme="dark"] .todoistcompanion-add-dialog {
     color-scheme: dark;
+}
+
+.todoistcompanion-task-heading {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.6;
+}
+.todoistcompanion-origin {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    padding: 3px;
+    color: #e44332;
+    text-decoration: none;
+    opacity: .8;
+}
+.todoistcompanion-origin svg { display: block; width: 16px; height: 16px; }
+.todoistcompanion-origin:hover { opacity: 1; }
+.todoistcompanion-origin:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.todoistcompanion-task-description,
+.todoistcompanion-task-metadata {
+    margin: .25em 0 .4em 1.8em;
+    overflow-wrap: anywhere;
+}
+.todoistcompanion-task-description { white-space: pre-wrap; }
+.todoistcompanion-task-metadata { color: var(--fokus-muted, #737b86); font-size: 12px; }
+.todoistcompanion-incoming:empty { display: none; }
+@media (max-width: 600px) {
+    .todoistcompanion-incoming .todoistcompanion-task { flex-wrap: wrap; }
+    .todoistcompanion-incoming .todoistcompanion-task-heading { flex-basis: 65%; }
+}
+
+.todoistcompanion-task-page {
+    margin-inline-start: .5em;
+}
+.todoistcompanion-expand {
+    display: inline;
+    padding: 0;
+    border: 0;
+    color: var(--fokus-accent, #444);
+    background: transparent;
+    font: inherit;
+    font-size: 14px;
+    text-align: start;
+    cursor: pointer;
+}
+.dokuwiki .todoistcompanion-expand:focus {
+    background-color: transparent;
+    background-image: none;
+}
+.dokuwiki .todoistcompanion-expand:hover,
+.dokuwiki .todoistcompanion-expand:focus-visible {
+    background-color: var(--fokus-accent-soft);
+    background-image: none;
+    border-radius: 2px;
+    color: var(--fokus-accent);
+    text-decoration: none;
+}
+.todoistcompanion-expand:focus-visible {
+    outline: 2px solid var(--fokus-accent, #444);
+    outline-offset: 2px;
+}
+.todoistcompanion-task-details[hidden] { display: none; }
+.todoistcompanion-task-details:not([hidden]) { padding-bottom: .25em; }
+.todoistcompanion-task-details .todoistcompanion-task-metadata:first-child { margin-top: .15em; }
+
+.todoistcompanion-todos ul:has(+ .todoistcompanion-incoming) {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+.todoistcompanion-todos-item {
+    margin-block: .12em;
+}
+.todoistcompanion-todos-item .todoistcompanion-task {
+    padding-block: .1em;
+}
+.todoistcompanion-task-details:not([hidden]) {
+    padding-bottom: .1em;
+}
+.todoistcompanion-task-description,
+.todoistcompanion-task-metadata {
+    margin-block: .12em .2em;
+    line-height: 1.4;
+}
+.todoistcompanion-todos-item {
+    margin-block: 0;
+}
+.todoistcompanion-todos-item .todoistcompanion-task {
+    padding-block: 0;
+}
+.todoistcompanion-task-heading {
+    line-height: 1.35;
+}
+.todoistcompanion-task-details:not([hidden]) {
+    padding-bottom: 0;
+}
+.todoistcompanion-task-description,
+.todoistcompanion-task-metadata {
+    margin-block: .08em .12em;
+    line-height: 1.3;
 }
