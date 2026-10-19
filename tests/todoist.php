@@ -1,8 +1,8 @@
 <?php
-/** Isolated incoming-sync checks. Never calls the network or touches wiki state. */
+/** Isolated Todoist project-list and archive checks. Never calls the network or touches wiki state. */
 define('DOKU_INC', __DIR__);
 class DokuWiki_Action_Plugin {}
-class DokuWiki_Syntax_Plugin {}
+class DokuWiki_Syntax_Plugin { public function getLang($key) { return 'Todoist tasks'; } }
 class Doku_Renderer { public $doc = ''; public $info = []; }
 class Doku_Event {
     public $data;
@@ -13,6 +13,7 @@ class FokusButler_Modules {
     public static $enabled = true;
     public static function enabled($module) { return self::$enabled; }
     public static function config($module, $key, $notset = false) { return $key === 'project_name' ? 'Wiki' : ''; }
+    public static function language($module, $key) { return 'Todoist tasks'; }
 }
 class TestInput {
     public $server; public $post; public $values = [];
@@ -27,6 +28,7 @@ $source = '~~TODOS~~';
 function auth_quickaclcheck($page) { global $permission; return $permission; }
 function checkSecurityToken() { global $csrf; return $csrf; }
 function rawWiki($page) { global $source; return $source; }
+function plugin_load($type, $id) { global $action; return $type === 'action' ? $action : null; }
 function io_mkdir_p($dir) { if (!is_dir($dir)) mkdir($dir, 0700, true); }
 function cleanID($id) { return $id; }
 function hsc($text) { return htmlspecialchars($text, ENT_QUOTES, 'UTF-8'); }
@@ -50,7 +52,10 @@ $INPUT->values['REMOTE_USER'] = 'admin';
 $ID = 'start';
 $action = new IncomingTest();
 $task = ['id' => 'remote1', 'project_id' => 'wiki', 'content' => '<script>idea</script>', 'description' => "<img src=x>\nSecond line", 'added_at' => '2026-10-19T08:30:00Z', 'priority' => 4, 'labels' => ['hardware'], 'due' => ['date' => '2026-10-20']];
+$completedTask = ['id' => 'remote-old', 'project_id' => 'wiki', 'content' => 'Completed idea', 'description' => 'Keep this in history', 'completed_at' => gmdate('Y-m-d\TH:i:s\Z')];
 $storage = $dir . '/fokusbutler/todoist';
+io_mkdir_p($storage);
+file_put_contents($storage . '/tasks.json', json_encode(['oldkey01' => ['todoist_id' => 'from-wiki', 'page' => 'secret', 'title' => 'Legacy page task', 'completed' => true]]));
 function expireIncoming() { global $storage; @unlink($storage . '/incoming.json'); }
 function eventCall($call, $key) {
     global $action, $INPUT;
@@ -65,15 +70,30 @@ try {
         ['results' => [['id' => 'wiki', 'name' => 'Wiki']], 'next_cursor' => null],
         ['results' => [$task], 'next_cursor' => 't2'],
         ['results' => [['id' => 'wrong', 'project_id' => 'other']], 'next_cursor' => null],
+        ['items' => [$completedTask], 'next_cursor' => null],
     ];
     $snapshot = $action->getProjectTasks('start');
-    verify(count($snapshot['tasks']) === 1, 'Project filter or pagination failed');
-    verify(count($action->calls) === 4 && $action->calls[3][1] === '/tasks?project_id=wiki&cursor=t2', 'Cursors not followed');
-    $key = key($snapshot['tasks']);
+    verify(count($snapshot['tasks']) === 3, 'Project filter, pagination, or wiki-task migration failed');
+    $completedKey = 'todoist-' . hash('sha256', 'remote-old');
+    $legacyKey = 'todoist-' . hash('sha256', 'from-wiki');
+    verify(!empty($snapshot['tasks'][$completedKey]['is_completed']) && !empty($snapshot['tasks'][$legacyKey]['is_completed']), 'Completed Todoist or migrated wiki task was not included as completed');
+    verify(count($action->calls) === 5 && $action->calls[3][1] === '/tasks?project_id=wiki&cursor=t2', 'Cursors not followed');
+    verify(is_file($storage . '/history.json'), 'Todoist task archive was not created');
+    $key = 'todoist-' . hash('sha256', 'remote1');
     $action->getProjectTasks('start');
-    verify(count($action->calls) === 4, 'Cache did not throttle refresh');
+    verify(count($action->calls) === 5, 'Cache did not throttle refresh');
+    $incomingCache = json_decode(file_get_contents($storage . '/incoming.json'), true);
+    $incomingCache['tasks'] = [];
+    $incomingCache['attempted_at'] = time();
+    file_put_contents($storage . '/incoming.json', json_encode($incomingCache));
+    $completionCache = json_decode(file_get_contents($storage . '/completion.json'), true);
+    $completionCache['completed_tasks'] = [];
+    $completionCache['attempted_at'] = time();
+    file_put_contents($storage . '/completion.json', json_encode($completionCache));
+    $archived = $action->getProjectTasks('start');
+    verify(isset($archived['tasks'][$key]) && !empty($archived['tasks'][$completedKey]['is_completed']), 'Tasks vanished after leaving Todoist current and recent-completion results');
     file_put_contents($storage . '/tasks.json', json_encode(['abcd1234' => ['todoist_id' => 'remote1', 'page' => 'secret']]));
-    verify(!$action->getProjectTasks('start')['tasks'], 'Restricted wiki task duplicated into imported list');
+    verify(count($action->getProjectTasks('start')['tasks']) === 3, 'Wiki-linked task was excluded from the Todoist-backed list');
     unlink($storage . '/tasks.json');
     $INPUT->values['REMOTE_USER'] = '';
     verify(!$action->getProjectTasks('start')['tasks'], 'Anonymous user saw personal tasks');
@@ -89,16 +109,15 @@ try {
     FokusButler_Modules::$enabled = true;
     $renderer = new Doku_Renderer();
     $syntax = new FokusButler_Module_Todoist_Syntax();
-    $render = new ReflectionMethod($syntax, 'renderImportedTasks');
-    $render->invoke($syntax, $renderer, $action);
-    verify(strpos($renderer->doc, '<script>') === false && strpos($renderer->doc, '&lt;script&gt;') !== false, 'Title not escaped');
-    verify(strpos($renderer->doc, '&lt;img src=x&gt;') !== false && strpos($renderer->doc, 'P1') === false && strpos($renderer->doc, '@hardware') !== false, 'Description or metadata lost');
-    verify(strpos($renderer->doc, 'class="todoistcompanion-origin"') !== false && $renderer->info['cache'] === false, 'Origin or cache policy missing');
+    $ID = 'start';
+    $syntax->render('xhtml', $renderer, ['type' => 'list']);
+    verify(strpos($renderer->doc, '<script>') === false && strpos($renderer->doc, 'Loading Todoist tasks') !== false, 'Aggregate list blocked on a server-side task render');
+    verify(strpos($renderer->doc, 'todoistcompanion-incoming') !== false && $renderer->info['cache'] === false, 'Async Todoist list or cache policy missing');
     $cache = json_decode(file_get_contents($storage . '/incoming.json'), true); $cache['attempted_at'] = 0;
     file_put_contents($storage . '/incoming.json', json_encode($cache));
     $action->responses = [['results' => [['id' => 'wiki', 'name' => 'Wiki']]], ['results' => [], 'next_cursor' => 'next'], null];
     $failed = $action->getProjectTasks('start');
-    verify(count($failed['tasks']) === 1 && $failed['error'] !== '', 'Partial failure discarded last successful list');
+    verify(count($failed['tasks']) === 3 && $failed['error'] !== '', 'Partial failure discarded the archived list');
     $permission = AUTH_READ;
     verify(eventCall('status', $key)['canComplete'] === false, 'Read-only user allowed completion');
     $before = count($action->calls);
@@ -111,14 +130,15 @@ try {
     $action->responses = [$task, ['ok' => true]];
     verify(eventCall('complete', $key)['completed'] === true && !file_exists($storage . '/incoming.json'), 'Completion did not invalidate recurring-task snapshot');
     $action->responses = [['results' => [['id' => 'other', 'name' => 'Private']]]];
-    verify(!$action->getProjectTasks('start')['tasks'] && end($action->calls)[0] === 'GET', 'Read created a missing project');
+    verify(count($action->getProjectTasks('start')['tasks']) === 3 && end($action->calls)[0] === 'GET', 'Read created a missing project or discarded its archived tasks');
     expireIncoming();
-    $action->responses = [['results' => [['id' => 'wiki', 'name' => 'Wiki']]], ['results' => [array_merge($task, ['checked' => true])]]];
-    verify(!$action->getProjectTasks('start')['tasks'], 'Completed API v1 task remained active');
+    $action->responses = [['results' => [['id' => 'wiki', 'name' => 'Wiki']]], ['results' => [$task]], ['items' => [], 'next_cursor' => null]];
+    $reopened = $action->getProjectTasks('start');
+    verify(isset($reopened['tasks'][$key]) && empty($reopened['tasks'][$key]['is_completed']), 'Active Todoist task did not clear its archived completion state');
     expireIncoming();
     $action->responses = [['results' => [], 'next_cursor' => 'repeat'], ['results' => [], 'next_cursor' => 'repeat']];
     verify($action->getProjectTasks('start')['error'] !== '', 'Repeated cursor was accepted');
-    echo "PASS: $checks incoming Todoist checks.\n";
+    echo "PASS: $checks Todoist project and archive checks.\n";
 } finally {
     foreach (glob($storage . '/*') ?: [] as $file) unlink($file);
     @rmdir($storage); @rmdir(dirname($storage)); @rmdir($dir);

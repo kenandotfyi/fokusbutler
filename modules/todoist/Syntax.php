@@ -64,26 +64,10 @@ class FokusButler_Module_Todoist_Syntax extends DokuWiki_Syntax_Plugin
     {
         $renderer->info['cache'] = false;
         $action = plugin_load('action', 'fokusbutler_todoist');
-        $tasks = $action && method_exists($action, 'getAllWikiTasks') ? $action->getAllWikiTasks() : [];
-        $renderer->doc .= '<section class="todoistcompanion-todos"><h3>' . hsc($this->getLang('todo_list_heading')) . '</h3><ul>';
-        if (!$tasks) {
-            $renderer->doc .= '<li class="todoistcompanion-todos-empty">' . hsc($this->getLang('no_tasks')) . '</li>';
-        } else {
-            foreach ($tasks as $task) {
-                $key = (string)$task['key'];
-                $page = (string)$task['page'];
-                $renderer->doc .= '<li class="todoistcompanion-todos-item"><div class="todoistcompanion-task" data-todoistcompanion-task="' . hsc($key) . '" data-page="' . hsc($page) . '">';
-                $renderer->doc .= $this->taskToggleButton();
-                $renderer->doc .= '<span class="todoistcompanion-task-heading"><span class="todoistcompanion-task-title">' . hsc($task['title']) . '</span>';
-                $renderer->doc .= '<a class="todoistcompanion-task-page" href="' . hsc(wl($page)) . '">' . hsc($page) . '</a></span>';
-                $renderer->doc .= '<span class="todoistcompanion-task-status" aria-live="polite">' . (FokusButler_Modules::enabled('todoist') ? 'Loading task status…' : 'Todoist integration disabled.') . '</span></div></li>';
-            }
-        }
-        $renderer->doc .= '</ul>';
+        $renderer->doc .= '<section class="todoistcompanion-todos"><h3>' . hsc($this->getLang('todo_list_heading')) . '</h3>';
         global $ID;
         if ($action && $action->canReadImportedTasks($ID)) {
-            // Load the remote project after the page has rendered so Todoist latency
-            // cannot hold up the wiki response.
+            // Todoist is the aggregate list's source of truth; load it after render.
             $renderer->doc .= '<ul class="todoistcompanion-incoming" data-page="' . hsc($ID) . '"><li class="todoistcompanion-todos-empty">Loading Todoist tasks…</li></ul>';
         } else {
             $renderer->doc .= '<ul class="todoistcompanion-incoming" hidden></ul>';

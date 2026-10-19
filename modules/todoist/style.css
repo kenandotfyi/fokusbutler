@@ -268,10 +268,14 @@ html[data-theme="dark"] .todoistcompanion-add-dialog {
 }
 
 .todoistcompanion-task-heading {
+    display: flex;
     flex: 1 1 auto;
+    align-items: baseline;
+    flex-wrap: wrap;
     min-width: 0;
     overflow-wrap: anywhere;
     line-height: 1.6;
+    column-gap: .8em;
 }
 .todoistcompanion-origin {
     display: inline-flex;
@@ -288,7 +292,7 @@ html[data-theme="dark"] .todoistcompanion-add-dialog {
 .todoistcompanion-origin:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .todoistcompanion-task-description,
 .todoistcompanion-task-metadata {
-    margin: .25em 0 .4em 1.8em;
+    margin: 0;
     overflow-wrap: anywhere;
 }
 .todoistcompanion-task-description { white-space: pre-wrap; }
@@ -300,7 +304,7 @@ html[data-theme="dark"] .todoistcompanion-add-dialog {
 }
 
 .todoistcompanion-task-page {
-    margin-inline-start: .5em;
+    margin-inline-start: 0;
 }
 .todoistcompanion-expand {
     display: inline;
@@ -332,6 +336,10 @@ html[data-theme="dark"] .todoistcompanion-add-dialog {
 .todoistcompanion-task-details[hidden] { display: none; }
 .todoistcompanion-task-details:not([hidden]) { padding-bottom: .25em; }
 .todoistcompanion-task-details .todoistcompanion-task-metadata:first-child { margin-top: .15em; }
+.todoistcompanion-task.is-completed .todoistcompanion-expand {
+    opacity: .6;
+    text-decoration: line-through;
+}
 
 .todoistcompanion-todos ul:has(+ .todoistcompanion-incoming) {
     padding-bottom: 0;
@@ -345,11 +353,6 @@ html[data-theme="dark"] .todoistcompanion-add-dialog {
 }
 .todoistcompanion-task-details:not([hidden]) {
     padding-bottom: .1em;
-}
-.todoistcompanion-task-description,
-.todoistcompanion-task-metadata {
-    margin-block: .12em .2em;
-    line-height: 1.4;
 }
 .todoistcompanion-todos-item {
     margin-block: 0;
@@ -365,6 +368,7 @@ html[data-theme="dark"] .todoistcompanion-add-dialog {
 }
 .todoistcompanion-task-description,
 .todoistcompanion-task-metadata {
-    margin-block: .08em .12em;
+    margin-bottom: 6px !important;
+    margin-left: 10px !important;
     line-height: 1.3;
 }

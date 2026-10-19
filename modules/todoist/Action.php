@@ -440,7 +440,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
             && strpos(rawWiki($page), '~~TODOS~~') !== false;
     }
 
-    /** Read only the configured project's active tasks. Never create projects on a read. */
+    /** Read the configured project's current tasks and locally retained task history. */
     public function getProjectTasks($page)
     {
         if (!$this->canReadImportedTasks($page)) return ['tasks' => [], 'error' => ''];
@@ -468,7 +468,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
                         return is_array($task) && !empty($task['id']) && (string)($task['project_id'] ?? '') === $projectId;
                     }));
                     $this->syncTodoistCompletion($projectId, $active);
-                    $cache = ['project' => $this->projectName(), 'tasks' => $active, 'synced_at' => time()];
+                    $cache = ['project' => $this->projectName(), 'project_id' => $projectId, 'tasks' => $active, 'synced_at' => time()];
                 }
                 $cache['attempted_at'] = time();
                 $cache['project'] = $this->projectName();
@@ -479,13 +479,24 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
             if ($lock) fclose($lock);
         }
         $completion = $this->syncTodoistCompletion();
-        // Exclude every wiki-linked ID, including tasks on restricted pages.
-        $linkedIds = array_column($this->loadTasks(), 'todoist_id');
-        $tasks = [];
-        $projectId = (string)($completion['project_id'] ?? '');
-        $byId = [];
+        $projectId = (string)($completion['project_id'] ?? ($cache['project_id'] ?? ''));
+        $historyFile = $this->storageDirectory() . '/history.json';
+        $history = is_file($historyFile) ? json_decode((string)@file_get_contents($historyFile), true) : [];
+        $history = is_array($history) ? $history : [];
+        $historyChanged = !is_file($historyFile) || ($history['project'] ?? '') !== $this->projectName()
+            || ($projectId !== '' && !empty($history['project_id']) && (string)$history['project_id'] !== $projectId);
+        if ($historyChanged) {
+            $history = [];
+        }
+        $byId = is_array($history['tasks'] ?? null) ? $history['tasks'] : [];
+        foreach ($byId as $id => $task) {
+            if (!is_array($task) || empty($task['id']) || ($projectId !== '' && !empty($task['project_id']) && (string)$task['project_id'] !== $projectId)) {
+                unset($byId[$id]);
+            }
+        }
+        $archivedTasks = $byId;
         foreach ($cache['tasks'] ?? [] as $task) {
-            if (is_array($task) && !empty($task['id'])) {
+            if (is_array($task) && !empty($task['id']) && ($projectId === '' || (string)($task['project_id'] ?? '') === $projectId)) {
                 $task['is_completed'] = false;
                 $byId[(string)$task['id']] = $task;
             }
@@ -493,13 +504,48 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
         foreach ($completion['completed_tasks'] ?? [] as $task) {
             if (!is_array($task) || empty($task['id']) || (string)($task['project_id'] ?? '') !== $projectId) continue;
             $id = (string)$task['id'];
-            if (!isset($byId[$id])) {
-                $task['is_completed'] = true;
-                $byId[$id] = $task;
-            }
+            $task['is_completed'] = true;
+            $byId[$id] = $task;
+        }
+        // Seed the archive from existing wiki task records so older linked tasks
+        // survive even if their page syntax was removed before this archive existed.
+        $wikiRecords = $this->loadTasks();
+        foreach ($wikiRecords as $record) {
+            $id = (string)($record['todoist_id'] ?? '');
+            if ($id === '' || isset($byId[$id]) || $projectId === '') continue;
+            $byId[$id] = [
+                'id' => $id,
+                'project_id' => $projectId,
+                'content' => (string)($record['title'] ?? 'Todoist task'),
+                'description' => '',
+                'is_completed' => !empty($record['completed']),
+            ];
+        }
+        if ($projectId !== '' && ($historyChanged || $archivedTasks !== $byId)) {
+            $this->writeJson('history.json', [
+                'project' => $this->projectName(),
+                'project_id' => $projectId,
+                'tasks' => $byId,
+                'updated_at' => time(),
+            ]);
+        }
+
+        $tasks = [];
+        $wikiById = [];
+        foreach ($wikiRecords as $record) {
+            if (!empty($record['todoist_id'])) $wikiById[(string)$record['todoist_id']] = $record;
         }
         foreach ($byId as $task) {
-            if (in_array((string)$task['id'], $linkedIds, true)) continue;
+            if (!is_array($task) || empty($task['id'])) continue;
+            $record = $wikiById[(string)$task['id']] ?? null;
+            $wikiPage = is_array($record) ? (string)($record['page'] ?? '') : '';
+            if ($wikiPage !== '' && auth_quickaclcheck($wikiPage) >= AUTH_READ
+                && (!function_exists('page_exists') || page_exists($wikiPage))) {
+                $task['wiki_page'] = $wikiPage;
+                $pageTitle = function_exists('p_get_first_heading') ? trim((string)p_get_first_heading($wikiPage, false)) : '';
+                $task['wiki_page_title'] = $pageTitle !== '' ? $pageTitle : $wikiPage;
+                $task['wiki_page_url'] = function_exists('wl') ? wl($wikiPage) : '';
+            }
             $task['key'] = 'todoist-' . hash('sha256', (string)$task['id']);
             $tasks[$task['key']] = $task;
         }
