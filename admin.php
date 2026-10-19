@@ -45,7 +45,7 @@ class admin_plugin_fokusbutler extends DokuWiki_Admin_Plugin
                     $schema = $this->templateSettingsSchema();
                     if (!$schema) throw new RuntimeException('Fokus settings are unavailable.');
                     $active = $INPUT->post->arr('adapters');
-                    foreach (['preview', 'annotations', 'katex'] as $id) {
+                    foreach (['annotations', 'katex'] as $id) {
                         $key = 'adapter_' . $id;
                         $setting = $settings['tpl____fokus____' . $key] ?? null;
                         if (!$setting || !isset($schema[$key])) throw new RuntimeException('An adapter setting is unavailable. Reload Configuration Manager.');
@@ -72,16 +72,23 @@ class admin_plugin_fokusbutler extends DokuWiki_Admin_Plugin
     {
         if (!auth_isadmin()) { echo '<p>Administrator access required.</p>'; return; }
         $selected = $this->selected();
-        echo '<div class="fokusbutler-admin"><header class="fokusbutler-admin-header"><h1>Fokus Butler</h1><p>Your Fokus companion, organized into independent feature modules.</p></header>';
+        echo '<div class="fokusbutler-admin"><aside class="fokusbutler-sidebar"><header class="fokusbutler-admin-header"><h1>Fokus Butler</h1><p>Settings &amp; modules</p></header>';
         echo '<nav class="fokusbutler-nav" aria-label="Fokus Butler modules">';
-        $tabs = ['modules' => ['name' => 'Modules']] + FokusButler_Modules::all();
-        foreach ($tabs as $id => $entry) {
-            echo '<a href="' . hsc(FokusButler_Modules::adminUrl($id)) . '"' . ($selected === $id ? ' aria-current="page"' : '') . '>' . hsc($entry['name']) . '</a>';
+        $modules = FokusButler_Modules::all();
+        $groups = [
+            'General' => ['modules' => ['name' => 'Overview'], 'settings' => $modules['settings']],
+            'Features' => array_filter($modules, static function ($entry) { return $entry['toggle']; }),
+            'Services' => array_filter($modules, static function ($entry, $id) { return !$entry['toggle'] && $id !== 'settings'; }, ARRAY_FILTER_USE_BOTH),
+        ];
+        foreach ($groups as $label => $entries) {
+            echo '<div class="fokusbutler-nav-group"><p class="fokusbutler-nav-label">' . hsc($label) . '</p>';
+            foreach ($entries as $id => $entry) $this->navigationItem($id, $entry, $selected);
+            echo '</div>';
         }
         if (is_dir(DOKU_PLUGIN . 'zoterobridge') && !plugin_isdisabled('zoterobridge')) {
-            echo '<a href="' . hsc(wl('', ['do'=>'admin', 'page'=>'zoterobridge'], true, '&')) . '">Zotero</a>';
+            echo '<div class="fokusbutler-nav-group"><p class="fokusbutler-nav-label">Integrations</p><a href="' . hsc(wl('', ['do'=>'admin', 'page'=>'zoterobridge'], true, '&')) . '">' . $this->navigationIcon('content') . '<span>Zotero</span></a></div>';
         }
-        echo '</nav><div class="fokusbutler-panel" data-fokusbutler-module="' . hsc($selected) . '">';
+        echo '</nav></aside><div class="fokusbutler-panel" data-fokusbutler-module="' . hsc($selected) . '">';
         if ($selected === 'modules') $this->modulesPanel();
         else {
             if (!FokusButler_Modules::enabled($selected)) echo '<p class="fokusbutler-notice">This module is disabled. You can still edit its settings. Existing syntax remains readable.</p>';
@@ -90,6 +97,24 @@ class admin_plugin_fokusbutler extends DokuWiki_Admin_Plugin
             else $this->informationPanel($selected);
         }
         echo '</div></div>';
+    }
+
+    private function navigationItem($id, $entry, $selected)
+    {
+        echo '<a href="' . hsc(FokusButler_Modules::adminUrl($id)) . '"' . ($selected === $id ? ' aria-current="page"' : '') . '>';
+        echo $this->navigationIcon($id) . '<span class="fokusbutler-nav-name">' . hsc($entry['name']) . '</span>';
+        if (!empty($entry['toggle']) && !FokusButler_Modules::enabled($id)) echo '<span class="fokusbutler-nav-status">Off</span>';
+        echo '</a>';
+    }
+
+    private function navigationIcon($module)
+    {
+        $icons = ['modules'=>'dots-six', 'settings'=>'gear-fine', 'content'=>'books',
+            'folding'=>'arrows-out-line-vertical', 'pagehealth'=>'heartbeat', 'imagepop'=>'image',
+            'notegraph'=>'graph', 'preview'=>'browser', 'snips'=>'exam'];
+        $file = $module === 'todoist' ? __DIR__ . '/modules/todoist/icons/todoist.svg'
+            : __DIR__ . '/core/icons/' . ($icons[$module] ?? 'dots-six') . '-duotone.svg';
+        return '<span class="fokusbutler-nav-icon' . ($module === 'todoist' ? ' fokusbutler-nav-icon-todoist' : '') . '" aria-hidden="true">' . file_get_contents($file) . '</span>';
     }
 
     private function modulesPanel()
@@ -130,7 +155,7 @@ class admin_plugin_fokusbutler extends DokuWiki_Admin_Plugin
         echo '<form method="post" action="' . hsc(FokusButler_Modules::adminUrl('modules')) . '"><input type="hidden" name="fokusbutler_save_adapters" value="1">';
         formSecurityToken();
         echo '<div class="fokusbutler-integration-grid">';
-        foreach (['preview'=>['Preview','Link previews in panes'], 'annotations'=>['Annotations','Annotations in panes'], 'katex'=>['KaTeX','Math rendering in panes']] as $id => $info) {
+        foreach (['annotations'=>['Annotations','Annotations in panes'], 'katex'=>['KaTeX','Math rendering in panes']] as $id => $info) {
             $key = 'adapter_' . $id;
             $setting = $settings['tpl____fokus____' . $key] ?? null;
             $protected = $setting && $setting->isProtected();
@@ -183,6 +208,10 @@ class admin_plugin_fokusbutler extends DokuWiki_Admin_Plugin
             echo '<p>Use four semicolons for closed sections or four plus signs for open sections. Titles accept wiki formatting and headings.</p><pre>' . hsc(";;;; Title |\nSection content\n;;;;\n\n++++ Title |\nSection content\n++++") . '</pre><p>Add these as wrap snippets in the Snips module if you want editor shortcuts.</p>';
         } elseif ($module === 'notegraph') {
             echo '<p>Open the local graph from a page’s banner. The graph follows incoming and outgoing wiki links, respects read permissions, and opens pages in Fokus panes.</p>';
+        } elseif ($module === 'content') {
+            echo '<p>Shared content providers supply sanitized wiki and Wikipedia articles to panes and hover previews. This service remains available when Page previews is disabled. Wikipedia reference tooltips are part of article rendering.</p>';
+        } elseif ($module === 'preview') {
+            echo '<p>Hover a wiki link or Wikipedia interwiki link to read the complete page in a scrollable window. You have 300 ms to move into the window after leaving the link. Drag its titlebar to pin it; pinned previews stay open until their trash button is clicked. Multiple previews can stay pinned. Resizing is not included yet.</p><p>The module replaces the standalone Preview plugin’s hover script while enabled, including links added by Todoist and Fokus panes. Disabling this module restores the standalone plugin on reload.</p>';
         }
     }
 }

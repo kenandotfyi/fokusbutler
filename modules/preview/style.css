@@ -1,0 +1,99 @@
+body.fokus-preview-active > .plugin-preview { display: none !important; }
+.fokus-preview-window.dokuwiki {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: min(var(--fokus-preview-width, 560px), calc(100vw - 24px));
+    height: min(var(--fokus-preview-height, 480px), calc(100vh - 24px));
+    margin: 0;
+    border: 1px solid var(--fokus-border, #c8ccd0);
+    border-radius: var(--fokus-control-radius, 3px);
+    background: var(--fokus-surface, #fff);
+    color: var(--fokus-text, #333);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 10%), 0 8px 24px rgb(0 0 0 / 14%) !important;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.55;
+    text-align: start;
+    isolation: isolate;
+}
+.fokus-preview-window .fokus-preview-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 30px;
+    box-sizing: border-box;
+    min-height: 30px;
+    height: 30px;
+    padding: 0 6px 0 10px;
+    border-bottom: 1px solid var(--fokus-border, #c8ccd0);
+    background: var(--fokus-surface-soft, #f6f7f8);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+.fokus-preview-window.is-dragging .fokus-preview-titlebar { cursor: grabbing; }
+.fokus-preview-window[data-provider="wikipedia"] .fokus-preview-titlebar {
+    background: color-mix(in srgb, var(--fokus-surface-soft, #f6f7f8) 75%, #7895ad);
+}
+.fokus-preview-window .fokus-preview-title {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: calc(100% - 72px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fokus-text, #333);
+    text-decoration: none;
+}
+.fokus-preview-window .fokus-preview-trash {
+    display: grid;
+    place-items: center;
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    margin-inline-start: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--fokus-muted, #737b86);
+    cursor: pointer;
+}
+.fokus-preview-window .fokus-preview-trash:hover { background: var(--fokus-accent-soft, #e9edf0); color: var(--fokus-text, #333); }
+.fokus-preview-window .fokus-preview-trash:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; }
+.fokus-preview-icon {
+    display: inline-block;
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+    background: currentColor;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+}
+.fokus-preview-window .fokus-preview-pin { display: none; color: var(--fokus-muted, #737b86); }
+.fokus-preview-window.is-pinned .fokus-preview-pin { display: inline-block; }
+.fokus-preview-window .fokus-preview-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 16px 18px 22px;
+    overflow-wrap: anywhere;
+    scrollbar-gutter: stable;
+}
+.fokus-preview-error { color: var(--fokus-text, #333); }
+.fokus-preview-settings-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 24px 0; }
+.fokus-preview-setting label { display: block; margin-bottom: 8px; font-weight: 600; }
+.fokus-preview-setting-input { display: flex; align-items: center; gap: 8px; }
+.fokus-preview-setting-input input { box-sizing: border-box; width: 120px; max-width: 100%; }
+.fokus-preview-setting-input > span { color: var(--fokus-muted, #666); font-size: 13px; }
+.fokus-preview-setting p { margin: 8px 0 0; font-size: 13px; line-height: 1.5; }
+.fokus-preview-setting p > span { color: var(--fokus-muted, #666); font-size: 12px; }
+@media (max-width: 650px) { .fokus-preview-settings-fields { grid-template-columns: 1fr; } }

@@ -21,6 +21,7 @@ Tag, Move, MoaiEditor, Preview, Annotations, and KaTeX remain external plugins. 
 | `pagehealth` | Empty-page classification, link styling, `~~PAGEHEALTH~~`, `~~LAST30~~` |
 | `imagepop` | Image lightbox, gallery, zoom/pan, configurable image selectors |
 | `notegraph` | Local graph from each page's banner, including additional panes |
+| `preview` | Full wiki and Wikipedia hover previews, scrolling, and titlebar drag-to-pin |
 | `snips` | Configurable insert/wrap snippets and existing-tag picker |
 | `todoist` | `{{todoistcompanion>Task\|id=abcd1234}}`, due dates, completion, `~~TODOS~~` |
 
@@ -39,10 +40,12 @@ fokusbutler/
   core/                     Module/config context, asset loader, admin shell
   modules/
     settings/
+    content/
     folding/
     pagehealth/
     imagepop/
     notegraph/
+    preview/
     snips/
     todoist/
 ```
@@ -84,6 +87,7 @@ Run integration checks against an isolated DokuWiki installation with this plugi
 DOKUWIKI_TEST_ROOT=/path/to/isolated/dokuwiki php tests/integration.php
 node tests/editor.cjs
 php tests/todoist.php
+php tests/preview.php
 ```
 
 The integration fixture should provide a `start` page, `md+dw` syntax, the Fokus template, and an `authplain` admin group. The suite checks real component discovery, parsing, admin configuration keys, module fallbacks, asset loading, and toolbar exports. Use an isolated wiki: the tests may initialize DokuWiki metadata and configuration directories. They never call Todoist's API.
@@ -91,3 +95,5 @@ The integration fixture should provide a `start` page, `md+dw` syntax, the Fokus
 Scripts and stylesheets use plain URLs without version parameters. After developing asset changes, use a normal browser cache refresh as needed. Switching plugin components requires clearing affected DokuWiki instruction and rendered-output caches once; do not delete unrelated application state stored under the cache directory.
 
 Phosphor duotone assets are covered by `PHOSPHOR-LICENSE.txt`; module-specific licenses are retained beside their modules.
+
+The Butler admin page uses a grouped module sidebar with the selected settings panel on the right. The active section remains in the URL, so browser Back and direct links continue to work. Narrow windows place the navigation above the selected panel. Content providers is an always-available shared service; Page previews controls full-page hover windows independently.

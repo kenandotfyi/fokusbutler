@@ -37,8 +37,8 @@ try {
     $INFO = pageinfo();
     verify(auth_isadmin(), 'Test admin authentication failed');
     $butler = plugin_load('helper', 'fokusbutler');
-    verify($butler && count($butler->modules()) === 7, 'Module manifest unavailable');
-    foreach (['assets', 'pagehealth', 'imagepop', 'notegraph', 'snips', 'todoist'] as $module) {
+    verify($butler && count($butler->modules()) === 9, 'Module manifest unavailable');
+    foreach (['assets', 'content', 'pagehealth', 'imagepop', 'notegraph', 'preview', 'snips', 'todoist'] as $module) {
         verify((bool)plugin_load('action', 'fokusbutler_' . $module), 'Missing action: ' . $module);
     }
     foreach (['foldclosed', 'foldopen', 'pagehealth', 'todoist'] as $component) {
@@ -47,7 +47,7 @@ try {
     $adminEntries = array_values(array_filter(plugin_list('admin'), static function ($id) { return strpos($id, 'fokusbutler') === 0; }));
     verify($adminEntries === ['fokusbutler'], 'Module internals appeared as separate admin plugins');
     $settings = (new dokuwiki\plugin\config\core\Configuration())->getSettings();
-    foreach (['enabled_folding', 'enabled_todoist', 'pagehealth_empty_color', 'imagepop_image_selector', 'todoist_api_token', 'todoist_project_name'] as $key) {
+    foreach (['enabled_folding', 'enabled_todoist', 'pagehealth_empty_color', 'imagepop_image_selector', 'todoist_api_token', 'todoist_project_name', 'preview_width', 'preview_height', 'preview_open_delay', 'preview_close_delay'] as $key) {
         verify(isset($settings['plugin____fokusbutler____' . $key]), 'Configuration key missing: ' . $key);
     }
     verify(FokusButler_Modules::defaults()['todoist_project_name'] === 'Wiki', 'Module default lookup failed');
@@ -82,9 +82,9 @@ try {
     $assetAction->addAssets($event, null);
     $assetAction->addAssets($event, null);
     $sources = array_column($event->data['script'], 'src');
-    verify(count($sources) === 7 && count(array_unique($sources)) === 7, 'Module scripts were missing or loaded twice');
+    verify(count($sources) === 9 && count(array_unique($sources)) === 9, 'Module scripts were missing or loaded twice');
     verify(count(array_filter($sources, static function ($src) { return strpos($src, '?') !== false; })) === 0, 'Asset version parameters were added');
-    verify(count($event->data['link']) === 6, 'Separate module stylesheets were not loaded');
+    verify(count($event->data['link']) === 8, 'Separate module stylesheets were not loaded');
 
     $toolbarData = [];
     $toolbar = new Doku_Event('TOOLBAR_DEFINE', $toolbarData);
@@ -97,7 +97,7 @@ try {
         verify(strpos(file_get_contents(FOKUSBUTLER_ROOT . '/modules/' . $module . '/script.js'), 'window.' . $function . ' = ') !== false, 'Toolbar handler not exported: ' . $function);
     }
 
-    foreach (['settings', 'pagehealth', 'imagepop', 'snips', 'todoist'] as $module) {
+    foreach (['settings', 'pagehealth', 'imagepop', 'preview', 'snips', 'todoist'] as $module) {
         $panel = FokusButler_Modules::admin($module);
         verify((bool)$panel, 'Admin panel missing: ' . $module);
         ob_start();
@@ -107,7 +107,7 @@ try {
         verify(strpos($html, 'name="module" value="' . $module . '"') !== false || strpos($html, 'module=' . $module) !== false, 'Admin form route missing: ' . $module);
     }
 
-    foreach (['folding', 'todoist', 'pagehealth', 'snips', 'imagepop', 'notegraph'] as $module) $conf['plugin']['fokusbutler']['enabled_' . $module] = 0;
+    foreach (['folding', 'todoist', 'pagehealth', 'snips', 'imagepop', 'notegraph', 'preview'] as $module) $conf['plugin']['fokusbutler']['enabled_' . $module] = 0;
     $disabledFolds = domFor(renderSyntax($folds));
     verify($disabledFolds->query('//div[contains(@class,"fokus-fold__content")][@hidden]')->length === 0, 'Disabled folding hid existing content');
     verify($disabledFolds->query('//button[@data-fokus-fold-toggle]')->length === 0, 'Disabled folding still rendered interactive toggles');
@@ -117,8 +117,8 @@ try {
     $data = ['link' => [], 'script' => []];
     $disabledAssets = new Doku_Event('TPL_METAHEADER_OUTPUT', $data);
     $assetAction->addAssets($disabledAssets, null);
-    verify(count(array_filter(array_column($disabledAssets->data['script'], 'src'), static function ($src) { return strpos($src, '/modules/') !== false; })) === 0, 'Disabled modules still loaded scripts');
-    verify(count($disabledAssets->data['link']) === 3, 'Disabled syntax modules lost their presentation styles');
+    verify(count(array_filter(array_column($disabledAssets->data['script'], 'src'), static function ($src) { return strpos($src, '/modules/') !== false; })) === 1, 'Shared content script must remain available with optional modules disabled');
+    verify(count($disabledAssets->data['link']) === 4, 'Disabled syntax modules lost their presentation styles');
 
     echo "PASS: $checks integration checks against real DokuWiki.\n";
 } catch (Throwable $error) {

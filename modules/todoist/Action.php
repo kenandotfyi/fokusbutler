@@ -136,7 +136,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
             echo json_encode(['error' => 'Security token check failed.']);
             return;
         }
-        if (auth_quickaclcheck($pageId) < AUTH_EDIT) {
+        if (!$this->canManageImportedTasks($pageId)) {
             http_response_code(403);
             echo json_encode(['error' => 'You cannot complete this page task.']);
             return;
@@ -431,13 +431,19 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
         return $result;
     }
 
-    /** Imported tasks inherit the ACL of a real aggregate page and require login. */
+    /** Imported tasks require login and either a readable aggregate page or admin access. */
     public function canReadImportedTasks($page)
     {
         global $INPUT;
-        return FokusButler_Modules::enabled('todoist') && $INPUT->server->str('REMOTE_USER') !== ''
-            && $page !== '' && auth_quickaclcheck($page) >= AUTH_READ
+        if (!FokusButler_Modules::enabled('todoist') || $INPUT->server->str('REMOTE_USER') === '') return false;
+        if ($page === 'fokusbutler:admin') return auth_isadmin();
+        return $page !== '' && auth_quickaclcheck($page) >= AUTH_READ
             && strpos(rawWiki($page), '~~TODOS~~') !== false;
+    }
+
+    private function canManageImportedTasks($page)
+    {
+        return $page === 'fokusbutler:admin' ? auth_isadmin() : auth_quickaclcheck($page) >= AUTH_EDIT;
     }
 
     /** Read the configured project's current tasks and locally retained task history. */
@@ -749,10 +755,10 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
             return;
         }
         if ($call === 'fokusbutler_todoist_status') {
-            echo json_encode(['ok' => true, 'synced' => true, 'completed' => !empty($task['is_completed']), 'canComplete' => empty($task['is_completed']) && auth_quickaclcheck($page) >= AUTH_EDIT]);
+            echo json_encode(['ok' => true, 'synced' => true, 'completed' => !empty($task['is_completed']), 'canComplete' => empty($task['is_completed']) && $this->canManageImportedTasks($page)]);
             return;
         }
-        if (!checkSecurityToken() || auth_quickaclcheck($page) < AUTH_EDIT) {
+        if (!checkSecurityToken() || !$this->canManageImportedTasks($page)) {
             http_response_code(403);
             echo json_encode(['error' => 'You cannot complete this Todoist task.']);
             return;

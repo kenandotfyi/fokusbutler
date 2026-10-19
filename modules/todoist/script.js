@@ -194,7 +194,6 @@ function localTimeString(date) {
             pageLink.href = task.wiki_page_url;
             pageLink.dataset.wikiId = task.wiki_page;
             pageLink.title = task.wiki_page_title || task.wiki_page;
-            attachPagePreview(pageLink);
             heading.appendChild(pageLink);
         }
         row.appendChild(heading);
@@ -258,37 +257,6 @@ function localTimeString(date) {
         if (!root || root.nodeType !== 1 && root !== document) return;
         if (root.matches && root.matches('.todoistcompanion-incoming[data-page]')) loadIncomingTasks(root);
         if (root.querySelectorAll) root.querySelectorAll('.todoistcompanion-incoming[data-page]').forEach(loadIncomingTasks);
-    }
-
-    function attachPagePreview(link) {
-        const previewConfig = typeof JSINFO !== 'undefined' && JSINFO.plugin && JSINFO.plugin.preview;
-        if (!previewConfig || (previewConfig.selector && !link.closest(previewConfig.selector))) return;
-        const preview = document.querySelector('.plugin-preview');
-        if (!preview || link.dataset.todoistPreviewAttached) return;
-        link.dataset.todoistPreviewAttached = 'true';
-        let controller = null;
-        link.addEventListener('mouseenter', async function (event) {
-            if (controller) controller.abort();
-            controller = new AbortController();
-            preview.style.top = event.pageY + 10 + 'px';
-            preview.style.left = event.pageX + 10 + 'px';
-            try {
-                const response = await fetch(DOKU_BASE + 'lib/exe/ajax.php?call=plugin_preview&id=' + encodeURIComponent(link.dataset.wikiId), {
-                    method: 'POST', signal: controller.signal
-                });
-                if (!response.ok || !link.matches(':hover')) return;
-                preview.innerHTML = await response.text();
-                preview.style.display = 'block';
-            } catch (error) {
-                // A missing or interrupted preview should not affect the task list.
-            }
-        });
-        link.addEventListener('mouseleave', function () {
-            preview.style.display = 'none';
-            if (controller) controller.abort();
-            controller = null;
-        });
-        link.removeAttribute('title');
     }
 
     function setTaskState(element, result) {

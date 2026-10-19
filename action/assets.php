@@ -18,7 +18,7 @@ class action_plugin_fokusbutler_assets extends DokuWiki_Action_Plugin
             if (FokusButler_Modules::enabled($module)) FokusButler_Assets::add($event, $module);
         }
         if (in_array($ACT, ['show', 'preview'], true)) {
-            foreach (['folding', 'pagehealth', 'imagepop', 'notegraph'] as $module) {
+            foreach (['content', 'folding', 'pagehealth', 'imagepop', 'notegraph', 'preview'] as $module) {
                 if (FokusButler_Modules::enabled($module) || in_array($module, ['folding', 'pagehealth'], true)) {
                     FokusButler_Assets::add($event, $module, FokusButler_Modules::enabled($module));
                 }

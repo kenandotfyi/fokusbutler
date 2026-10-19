@@ -144,20 +144,11 @@ class FokusButler_Module_Todoist_Admin extends AdminPlugin
         echo '<h2>' . hsc($this->getLang('future_features')) . '</h2>';
         echo '<p>' . hsc($this->getLang('future_features_help')) . '</p>';
 
+        echo '<section class="todoistcompanion-todos todoistcompanion-admin-todos">';
         echo '<h2>' . hsc($this->getLang('all_tasks')) . '</h2>';
         echo '<p>' . hsc($this->getLang('all_tasks_help')) . '</p>';
-        $action = plugin_load('action', 'fokusbutler_todoist');
-        $tasks = $action && method_exists($action, 'getAllWikiTasks') ? $action->getAllWikiTasks(true) : [];
-        if (!$tasks) {
-            echo '<p>' . hsc($this->getLang('no_tasks')) . '</p>';
-        } else {
-            echo '<table class="inline"><thead><tr><th>' . hsc($this->getLang('task')) . '</th><th>' . hsc($this->getLang('page')) . '</th><th>' . hsc($this->getLang('status')) . '</th></tr></thead><tbody>';
-            foreach ($tasks as $task) {
-                $status = !empty($task['completed']) ? 'completed' : (!empty($task['todoist_id']) ? 'synced' : 'pending');
-                echo '<tr><td>' . hsc($task['title']) . '</td><td><a href="' . hsc(wl($task['page'])) . '">' . hsc($task['page']) . '</a></td><td>' . hsc($this->getLang('task_status_' . $status)) . '</td></tr>';
-            }
-            echo '</tbody></table>';
-        }
+        echo '<ul class="todoistcompanion-incoming" data-page="fokusbutler:admin"><li class="todoistcompanion-todos-empty">' . hsc($this->getLang('loading_tasks')) . '</li></ul>';
+        echo '</section>';
         echo '</div>';
     }
 

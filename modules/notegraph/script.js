@@ -53,6 +53,8 @@
 
         headers.forEach((header) => {
             if (header.closest('.infinitepanels-popup-pane')) return;
+            const provider = header.closest('.infinitepanels-pane')?.dataset.provider;
+            if (provider && provider !== 'wiki') return;
             let actions = header.querySelector('.infinitepanels-actions');
             if (!actions) {
                 actions = document.createElement('div');

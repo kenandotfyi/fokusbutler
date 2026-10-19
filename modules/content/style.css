@@ -1,0 +1,132 @@
+.fokus-content-body > :first-child { margin-top: 0; }
+:is(.fokus-preview-window, .infinitepanels-pane, .fokus-reference-tooltip)[data-provider="wikipedia"] .fokus-content-body a {
+    color: var(--fokus-accent, #526f87);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+}
+:is(.fokus-preview-window, .infinitepanels-pane, .fokus-reference-tooltip)[data-provider="wikipedia"] .fokus-content-body a:hover {
+    text-decoration-color: currentColor;
+    background: var(--fokus-accent-soft, #e9edf0);
+}
+:is(.fokus-preview-window, .infinitepanels-pane, .fokus-reference-tooltip)[data-provider="wikipedia"] .fokus-content-body :is(.mw-ref, sup.reference) a {
+    text-decoration: none;
+    cursor: help;
+}
+.fokus-content-body img { max-width: 100%; height: auto; }
+.fokus-content-body pre { max-width: 100%; overflow: auto; }
+.fokus-content-body table { max-width: 100%; font-size: 12px; border-collapse: collapse; }
+.fokus-content-body th, .fokus-content-body td { padding: 4px 6px; border: 1px solid var(--fokus-border, #d6dadd); }
+.fokus-content-body .infobox { float: right; clear: right; width: 45%; margin: 0 0 12px 12px; }
+.fokus-content-body .mw-editsection, .fokus-content-body .mw-empty-elt { display: none; }
+.fokus-content-body .shortdescription {
+    margin: 0 0 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--fokus-border, #d6dadd);
+    color: var(--fokus-muted, #737b86);
+    font-size: 12px;
+    font-style: italic;
+    line-height: 1.45;
+}
+:is(.fokus-preview-window, .infinitepanels-pane, .fokus-reference-tooltip)[data-provider="wikipedia"] .fokus-content-body .hatnote {
+    display: flow-root;
+    margin: 0 0 12px;
+    padding: 7px 10px;
+    border-inline-start: 2px solid var(--fokus-border, #d6dadd);
+    background: var(--fokus-surface-soft, #f6f7f8);
+    color: var(--fokus-muted, #737b86);
+    font-size: 12px;
+    line-height: 1.45;
+}
+.fokus-wikipedia-rail {
+    float: right;
+    clear: right;
+    width: 38%;
+    max-width: 200px;
+    margin: 0 0 14px 16px;
+}
+.fokus-content-body .fokus-wikipedia-rail figure {
+    float: none;
+    width: auto;
+    margin: 0 0 12px;
+}
+.fokus-wikipedia-rail figure img {
+    display: block;
+    max-height: 180px;
+    width: auto;
+    margin-inline: auto;
+    object-fit: contain;
+}
+.fokus-wikipedia-rail figcaption {
+    margin-top: 6px;
+    color: var(--fokus-muted, #737b86);
+    font-size: 12px;
+    line-height: 1.4;
+}
+.fokus-content-body .fokus-wikipedia-related {
+    margin: 0 0 6px;
+    border: 1px solid var(--fokus-border, #d6dadd);
+    font-size: 12px;
+}
+.fokus-wikipedia-related > summary {
+    padding: 6px 8px;
+    background: var(--fokus-surface-soft, #f6f7f8);
+    color: var(--fokus-muted, #737b86);
+    cursor: pointer;
+    line-height: 1.4;
+}
+.fokus-wikipedia-related-content { padding: 6px; overflow-x: auto; }
+.fokus-content-body .fokus-wikipedia-related-content .sidebar,
+.fokus-content-body .fokus-wikipedia-related-content .navbox,
+.fokus-content-body .fokus-wikipedia-related-content table {
+    float: none;
+    width: 100%;
+    margin: 0;
+}
+.fokus-content-body .fokus-wikipedia-related-content th,
+.fokus-content-body .fokus-wikipedia-related-content td { border: 0; padding: 3px 2px; }
+.fokus-content-body .fokus-wikipedia-related-content ul { margin: 4px 0; padding-inline-start: 16px; }
+:is(.fokus-preview-window, .infinitepanels-pane, .fokus-reference-tooltip)[data-provider="wikipedia"] .fokus-content-body figure.mw-halign-right:not(.fokus-wikipedia-rail figure) {
+    float: right;
+    clear: right;
+    width: 38%;
+    margin: 0 0 12px 16px;
+}
+.fokus-content-body math annotation { display: none; }
+@supports (math-style: normal) {
+    .fokus-content-body .mwe-math-fallback-image-inline,
+    .fokus-content-body .mwe-math-fallback-image-display { display: none; }
+}
+.fokus-content-body h1 { font-size: 21px; }
+.fokus-content-body h2 { font-size: 18px; }
+.fokus-content-body h3 { font-size: 15px; }
+.fokus-content-body h4, .fokus-content-body h5, .fokus-content-body h6 { font-size: 13px; }
+.fokus-content-body .fokus-content-attribution {
+    display: block;
+    clear: both;
+    margin-top: 24px;
+    padding-top: 10px;
+    border-top: 1px solid var(--fokus-border, #d6dadd);
+    font-size: 12px;
+    color: var(--fokus-muted, #737b86);
+}
+.fokus-preview-error { color: var(--fokus-text, #333); }
+.fokus-reference-tooltip.dokuwiki {
+    position: fixed;
+    z-index: 18000;
+    box-sizing: border-box;
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(240px, calc(100vh - 24px));
+    overflow: hidden;
+    padding: 10px 12px;
+    border: 1px solid var(--fokus-border, #c8ccd0);
+    border-radius: var(--fokus-control-radius, 3px);
+    background: var(--fokus-surface, #fff);
+    color: var(--fokus-text, #333);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 10%), 0 8px 24px rgb(0 0 0 / 14%) !important;
+    font-size: 13px;
+    line-height: 1.55;
+    pointer-events: none;
+}
+.fokus-reference-tooltip .mw-cite-backlink { display: none; }
