@@ -32,7 +32,8 @@
 }
 
 .todoistcompanion-task-icon,
-.todoistcompanion-task-icon svg {
+.todoistcompanion-task-icon svg,
+.todoistcompanion-task-icon img {
     display: block;
     width: 1.25em;
     height: 1.25em;
@@ -281,7 +282,8 @@ html[data-theme="dark"] .todoistcompanion-add-dialog {
     text-decoration: none;
     opacity: .8;
 }
-.todoistcompanion-origin svg { display: block; width: 16px; height: 16px; }
+.todoistcompanion-origin svg,
+.todoistcompanion-origin img { display: block; width: 16px; height: 16px; }
 .todoistcompanion-origin:hover { opacity: 1; }
 .todoistcompanion-origin:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .todoistcompanion-task-description,

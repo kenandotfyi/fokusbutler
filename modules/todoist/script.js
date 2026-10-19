@@ -115,6 +115,142 @@ function localTimeString(date) {
         return DOKU_BASE + 'lib/exe/ajax.php?call=fokusbutler_todoist_' + action;
     }
 
+    function textElement(tag, className, text) {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        if (text !== undefined) element.textContent = text;
+        return element;
+    }
+
+    function taskDate(value, label, timezone) {
+        if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}.*)?$/.test(value)) return null;
+        const dateOnly = value.length === 10;
+        const date = new Date(dateOnly ? value + 'T00:00:00' : value);
+        if (Number.isNaN(date.getTime())) return null;
+        let formatted;
+        try {
+            const options = { year: '2-digit', month: '2-digit', day: '2-digit', timeZone: dateOnly ? 'UTC' : (timezone || undefined) };
+            if (!dateOnly) Object.assign(options, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+            const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', options).formatToParts(date).map(part => [part.type, part.value]));
+            formatted = parts.year + '-' + parts.month + '-' + parts.day + (dateOnly ? '' : ' ' + parts.hour + ':' + parts.minute);
+        } catch (error) { return null; }
+        const time = textElement('time', 'todoistcompanion-task-date', label + ' ' + formatted);
+        time.dateTime = value;
+        time.title = label + ': ' + value + (timezone ? ' (' + timezone + ')' : '');
+        return time;
+    }
+
+    function taskCheckboxIcon(checked) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 256 256');
+        svg.setAttribute('fill', 'currentColor');
+        const fill = document.createElementNS(svg.namespaceURI, 'circle');
+        fill.setAttribute('cx', '128'); fill.setAttribute('cy', '128'); fill.setAttribute('r', '104'); fill.setAttribute('opacity', '0.2');
+        svg.appendChild(fill);
+        const ring = document.createElementNS(svg.namespaceURI, 'circle');
+        ring.setAttribute('cx', '128'); ring.setAttribute('cy', '128'); ring.setAttribute('r', '96'); ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', 'currentColor'); ring.setAttribute('stroke-width', '16');
+        svg.appendChild(ring);
+        if (checked) {
+            const check = document.createElementNS(svg.namespaceURI, 'path');
+            check.setAttribute('d', 'm88 128 28 28 56-56'); check.setAttribute('fill', 'none'); check.setAttribute('stroke', 'currentColor');
+            check.setAttribute('stroke-width', '16'); check.setAttribute('stroke-linecap', 'round'); check.setAttribute('stroke-linejoin', 'round');
+            svg.appendChild(check);
+        }
+        return svg;
+    }
+
+    function todoistLogoIcon() {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'currentColor');
+        const path = document.createElementNS(svg.namespaceURI, 'path');
+        path.setAttribute('d', 'M21 0H3C1.35 0 0 1.35 0 3v3.858s3.854 2.24 4.098 2.38c.31.18.694.177 1.004 0 .26-.147 8.02-4.608 8.136-4.675.279-.161.58-.107.748-.01.164.097.606.348.84.48.232.134.221.502.013.622l-9.712 5.59c-.346.2-.69.204-1.048.002C3.478 10.907.998 9.463 0 8.882v2.02l4.098 2.38c.31.18.694.177 1.004 0 .26-.147 8.02-4.609 8.136-4.676.279-.16.58-.106.748-.008.164.096.606.347.84.48.232.133.221.5.013.62-.208.121-9.288 5.346-9.712 5.59-.346.2-.69.205-1.048.002C3.478 14.951.998 13.506 0 12.926v2.02l4.098 2.38c.31.18.694.177 1.004 0 .26-.147 8.02-4.609 8.136-4.676.279-.16.58-.106.748-.009.164.097.606.348.84.48.232.133.221.502.013.622l-9.712 5.59c-.346.199-.69.204-1.048.001C3.478 18.994.998 17.55 0 16.97V21c0 1.65 1.35 3 3 3h18c1.65 0 3-1.35 3-3V3c0-1.65-1.35-3-3-3z');
+        svg.appendChild(path);
+        return svg;
+    }
+
+    function renderIncomingTask(task, page, displayTimezone) {
+        const id = String(task.id || '');
+        const item = textElement('li', 'todoistcompanion-todos-item todoistcompanion-incoming-item');
+        const row = textElement('div', 'todoistcompanion-task');
+        row.dataset.todoistcompanionTask = task.key || '';
+        row.dataset.page = page;
+        const toggle = textElement('button', 'todoistcompanion-task-toggle');
+        toggle.type = 'button'; toggle.setAttribute('role', 'checkbox'); toggle.setAttribute('aria-checked', 'false');
+        toggle.setAttribute('aria-busy', 'true'); toggle.disabled = true; toggle.setAttribute('aria-label', 'Loading task status');
+        [false, true].forEach((checked, index) => {
+            const icon = textElement('span', 'todoistcompanion-task-icon ' + (index ? 'todoistcompanion-task-icon-checked' : 'todoistcompanion-task-icon-unchecked'));
+            icon.setAttribute('aria-hidden', 'true');
+            icon.appendChild(taskCheckboxIcon(checked)); toggle.appendChild(icon);
+        });
+        row.appendChild(toggle);
+        const heading = textElement('span', 'todoistcompanion-task-heading');
+        const detailsId = 'todoist-details-' + id.replace(/[^a-zA-Z0-9_-]/g, '');
+        const expand = textElement('button', 'todoistcompanion-expand', task.content || '');
+        expand.type = 'button'; expand.setAttribute('aria-expanded', 'false'); expand.setAttribute('aria-controls', detailsId);
+        heading.appendChild(expand); row.appendChild(heading);
+        const origin = textElement('a', 'todoistcompanion-origin');
+        origin.href = 'https://app.todoist.com/app/task/' + encodeURIComponent(id);
+        origin.target = '_blank'; origin.rel = 'noopener noreferrer'; origin.title = 'Added in Todoist — open task'; origin.setAttribute('aria-label', origin.title);
+        origin.appendChild(todoistLogoIcon()); row.appendChild(origin);
+        row.appendChild(textElement('span', 'todoistcompanion-task-status', 'Loading task status…'));
+        item.appendChild(row);
+
+        const details = textElement('div', 'todoistcompanion-task-details'); details.id = detailsId; details.hidden = true;
+        const dates = [];
+        const due = task.due || {};
+        const dueDate = taskDate(due.datetime || due.date || '', 'Due', due.timezone);
+        const addedDate = taskDate(task.added_at || '', 'Added', displayTimezone);
+        if (dueDate) dates.push(dueDate); if (addedDate) dates.push(addedDate);
+        if (dates.length) { const p = textElement('p', 'todoistcompanion-task-metadata'); dates.forEach((date, i) => { if (i) p.appendChild(document.createTextNode(' ')); p.appendChild(date); }); details.appendChild(p); }
+        if (task.description) details.appendChild(textElement('p', 'todoistcompanion-task-description', task.description));
+        const metadata = [];
+        if (due.is_recurring) metadata.push('Repeats: ' + (due.string || 'Recurring'));
+        if (task.deadline && task.deadline.date) metadata.push('Deadline: ' + task.deadline.date);
+        (task.labels || []).forEach(label => metadata.push('@' + label));
+        if (metadata.length) details.appendChild(textElement('p', 'todoistcompanion-task-metadata', metadata.join(' · ')));
+        item.appendChild(details);
+        return item;
+    }
+
+    function loadIncomingTasks(list) {
+        if (list.dataset.loading === 'true') return;
+        list.dataset.loading = 'true';
+        jQuery.ajax({
+            url: ajaxUrl('list'), method: 'POST', dataType: 'json', timeout: 20000,
+            data: { page: list.dataset.page }
+        }).done(function (result) {
+            if (!result || !result.ok) {
+                if (!list.dataset.signature) list.replaceChildren(textElement('li', 'todoistcompanion-todos-empty', result && result.error || 'Todoist tasks could not be loaded.'));
+                return;
+            }
+            const tasks = result.tasks || [];
+            const signature = JSON.stringify(tasks);
+            if (list.dataset.signature !== signature) {
+                list.dataset.signature = signature;
+                const fragment = document.createDocumentFragment();
+                tasks.forEach(task => fragment.appendChild(renderIncomingTask(task, list.dataset.page, result.timezone)));
+                if (!tasks.length) fragment.appendChild(textElement('li', 'todoistcompanion-todos-empty', 'No Todoist tasks.'));
+                list.replaceChildren(fragment);
+                list.hidden = false;
+            }
+            let warning = list.parentElement.querySelector('.todoistcompanion-list-error');
+            if (result.error) {
+                if (!warning) { warning = textElement('p', 'todoistcompanion-task-error todoistcompanion-list-error'); list.parentElement.insertBefore(warning, list); }
+                warning.textContent = result.error + ' The list may be out of date.';
+            } else if (warning) warning.remove();
+        }).fail(function (xhr) {
+            if (list.dataset.signature) return;
+            list.replaceChildren(textElement('li', 'todoistcompanion-todos-empty', 'Todoist tasks could not be loaded.'));
+        }).always(function () { delete list.dataset.loading; });
+    }
+
+    function scanIncoming(root) {
+        if (!root || root.nodeType !== 1 && root !== document) return;
+        if (root.matches && root.matches('.todoistcompanion-incoming[data-page]')) loadIncomingTasks(root);
+        if (root.querySelectorAll) root.querySelectorAll('.todoistcompanion-incoming[data-page]').forEach(loadIncomingTasks);
+    }
+
     function setTaskState(element, result) {
         const $task = jQuery(element);
         const $button = $task.find('.todoistcompanion-task-toggle');
@@ -175,15 +311,17 @@ function localTimeString(date) {
 
     jQuery(function () {
         scanTasks(document);
+        scanIncoming(document);
         window.setInterval(function () {
             if (document.visibilityState !== 'visible') return;
+            document.querySelectorAll('.todoistcompanion-incoming[data-page]').forEach(loadIncomingTasks);
             document.querySelectorAll('[data-todoistcompanion-task]').forEach(function (element) {
                 loadTaskState(element, true);
             });
         }, 20000);
         const observer = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
-                mutation.addedNodes.forEach(scanTasks);
+                mutation.addedNodes.forEach(function (node) { scanTasks(node); scanIncoming(node); });
             });
         });
         observer.observe(document.body, { childList: true, subtree: true });

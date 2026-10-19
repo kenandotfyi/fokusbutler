@@ -80,65 +80,16 @@ class FokusButler_Module_Todoist_Syntax extends DokuWiki_Syntax_Plugin
             }
         }
         $renderer->doc .= '</ul>';
-        $this->renderImportedTasks($renderer, $action);
+        global $ID;
+        if ($action && $action->canReadImportedTasks($ID)) {
+            // Load the remote project after the page has rendered so Todoist latency
+            // cannot hold up the wiki response.
+            $renderer->doc .= '<ul class="todoistcompanion-incoming" data-page="' . hsc($ID) . '"><li class="todoistcompanion-todos-empty">Loading Todoist tasks…</li></ul>';
+        } else {
+            $renderer->doc .= '<ul class="todoistcompanion-incoming" hidden></ul>';
+        }
         $renderer->doc .= '</section>';
         return true;
-    }
-
-    private function renderImportedTasks(Doku_Renderer $renderer, $action)
-    {
-        global $ID;
-        if (!$action || !$action->canReadImportedTasks($ID)) return;
-        // Personal project contents must never enter a shared parser cache.
-        $renderer->info['cache'] = false;
-        $snapshot = $action->getProjectTasks($ID);
-        if ($snapshot['error'] !== '') {
-            $renderer->doc .= '<p class="todoistcompanion-task-error" role="status">' . hsc($snapshot['error']) . ' The list may be out of date.</p>';
-        }
-        $renderer->doc .= '<ul class="todoistcompanion-incoming">';
-        foreach ($snapshot['tasks'] as $key => $task) {
-            $detailsId = 'todoist-details-' . substr(hash('sha256', (string)$task['id']), 0, 16);
-            $renderer->doc .= '<li class="todoistcompanion-todos-item todoistcompanion-incoming-item"><div class="todoistcompanion-task" data-todoistcompanion-task="' . hsc($key) . '" data-page="' . hsc($ID) . '">';
-            $renderer->doc .= $this->taskToggleButton();
-            $renderer->doc .= '<span class="todoistcompanion-task-heading"><button type="button" class="todoistcompanion-expand" aria-expanded="false" aria-controls="' . hsc($detailsId) . '">' . hsc((string)($task['content'] ?? '')) . '</button></span>';
-            $renderer->doc .= '<a class="todoistcompanion-origin" href="https://app.todoist.com/app/task/' . rawurlencode((string)$task['id']) . '" target="_blank" rel="noopener noreferrer" title="Added in Todoist — open task" aria-label="Added in Todoist — open task">' . file_get_contents(__DIR__ . '/icons/todoist.svg') . '</a>';
-            $renderer->doc .= '<span class="todoistcompanion-task-status" aria-live="polite">Loading task status…</span></div>';
-            $renderer->doc .= '<div class="todoistcompanion-task-details" id="' . hsc($detailsId) . '" hidden>';
-            $dates = $this->renderTaskDate($task['due']['datetime'] ?? $task['due']['date'] ?? '', 'Due', $task['due']['timezone'] ?? null)
-                . $this->renderTaskDate($task['added_at'] ?? '', 'Added');
-            if ($dates !== '') $renderer->doc .= '<p class="todoistcompanion-task-metadata">' . $dates . '</p>';
-            if (!empty($task['description'])) {
-                $renderer->doc .= '<p class="todoistcompanion-task-description">' . hsc((string)$task['description']) . '</p>';
-            }
-            $metadata = [];
-            if (!empty($task['due']['is_recurring'])) $metadata[] = 'Repeats: ' . ($task['due']['string'] ?? 'Recurring');
-            if (!empty($task['deadline']['date'])) $metadata[] = 'Deadline: ' . $task['deadline']['date'];
-            foreach ($task['labels'] ?? [] as $label) $metadata[] = '@' . $label;
-            if ($metadata) $renderer->doc .= '<p class="todoistcompanion-task-metadata">' . hsc(implode(' · ', $metadata)) . '</p>';
-            $renderer->doc .= '</div></li>';
-        }
-        $renderer->doc .= '</ul>';
-    }
-
-    private function renderTaskDate($value, $label, $timezone = null)
-    {
-        if (!is_string($value) || !preg_match('/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}.*)?$/', $value)) return '';
-        try {
-            $zone = new DateTimeZone($timezone ?: date_default_timezone_get());
-            $date = new DateTimeImmutable($value, $zone);
-            // Convert explicit UTC/offset timestamps to the configured display timezone.
-            $date = $date->setTimezone($zone);
-            $formatted = $date->format(strlen($value) === 10 ? 'y-m-d' : 'y-m-d H:i');
-        } catch (Exception $error) {
-            return '';
-        }
-        return '<time class="todoistcompanion-task-date" datetime="' . hsc($value) . '" title="' . hsc($label . ': ' . $value . ' (' . $zone->getName() . ')') . '">'
-            . hsc($label . ' ' . $formatted) . '</time>';
-    }
-
-    private function renderDueDateTime($value)
-    {
-        return $this->renderTaskDate($value, 'Due');
     }
 
     private function taskToggleButton()
@@ -150,5 +101,24 @@ class FokusButler_Module_Todoist_Syntax extends DokuWiki_Syntax_Plugin
             . '<span class="todoistcompanion-task-icon todoistcompanion-task-icon-unchecked" aria-hidden="true">' . $uncheckedIcon . '</span>'
             . '<span class="todoistcompanion-task-icon todoistcompanion-task-icon-checked" aria-hidden="true">' . $checkedIcon . '</span>'
             . '</button>';
+    }
+
+    private function renderTaskDate($value, $label, $timezone = null)
+    {
+        if (!is_string($value) || !preg_match('/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}.*)?$/', $value)) return '';
+        try {
+            $zone = new DateTimeZone($timezone ?: date_default_timezone_get());
+            $date = (new DateTimeImmutable($value, $zone))->setTimezone($zone);
+            $formatted = $date->format(strlen($value) === 10 ? 'y-m-d' : 'y-m-d H:i');
+        } catch (Exception $error) {
+            return '';
+        }
+        return '<time class="todoistcompanion-task-date" datetime="' . hsc($value) . '" title="' . hsc($label . ': ' . $value . ' (' . $zone->getName() . ')') . '">'
+            . hsc($label . ' ' . $formatted) . '</time>';
+    }
+
+    private function renderDueDateTime($value)
+    {
+        return $this->renderTaskDate($value, 'Due');
     }
 }

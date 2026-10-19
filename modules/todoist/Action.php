@@ -80,15 +80,25 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
 
     public function handleAjax(Doku_Event $event, $param)
     {
-        if (!in_array($event->data, ['fokusbutler_todoist_complete', 'fokusbutler_todoist_status'], true)) return;
+        if (!in_array($event->data, ['fokusbutler_todoist_complete', 'fokusbutler_todoist_status', 'fokusbutler_todoist_list'], true)) return;
         $event->preventDefault();
         $event->stopPropagation();
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store, private');
 
         global $INPUT;
-        $taskKey = $INPUT->post->str('task');
         $pageId = cleanID($INPUT->post->str('page'));
+        if ($event->data === 'fokusbutler_todoist_list') {
+            if (!$this->canReadImportedTasks($pageId)) {
+                http_response_code(403);
+                echo json_encode(['error' => 'You cannot view Todoist tasks on this page.']);
+                return;
+            }
+            $snapshot = $this->getProjectTasks($pageId);
+            echo json_encode(['ok' => true, 'tasks' => array_values($snapshot['tasks']), 'error' => $snapshot['error'], 'timezone' => date_default_timezone_get()], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        $taskKey = $INPUT->post->str('task');
         if (strpos($taskKey, 'todoist-') === 0) {
             $this->handleImportedTask($taskKey, $pageId, $event->data);
             return;
