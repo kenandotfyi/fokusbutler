@@ -50,10 +50,54 @@
         else lead.prepend(rail);
     }
 
+    function wikipediaImageSource(image) {
+        if (!image.closest('.fokus-wikipedia-content')) return '';
+        const anchor = image.closest('a[href]');
+        if (anchor) {
+            try {
+                const url = new URL(anchor.href, window.location.href);
+                const trustedHost = /^(?:[a-z][a-z0-9-]{0,30}\.wikipedia\.org|commons\.wikimedia\.org)$/i.test(url.hostname);
+                const file = decodeURIComponent(url.pathname).match(/^\/wiki\/(?:File|Image):(.+)$/i);
+                if (trustedHost && file) {
+                    return new URL('/wiki/Special:Redirect/file/' + encodeURIComponent(file[1]), url.origin).href;
+                }
+            } catch (_) { /* Fall back to the image URL when the file link is malformed. */ }
+        }
+
+        try {
+            const url = new URL(image.currentSrc || image.src, window.location.href);
+            const parts = url.pathname.split('/').filter(Boolean);
+            const thumbIndex = parts.indexOf('thumb');
+            if (thumbIndex >= 0 && parts.length > thumbIndex + 3) {
+                url.pathname = '/' + [...parts.slice(0, thumbIndex), ...parts.slice(thumbIndex + 1, -1)].join('/');
+                url.search = '';
+                url.hash = '';
+                return url.href;
+            }
+        } catch (_) { /* Keep the browser-selected image source. */ }
+        return '';
+    }
+
+    function useWikipediaOriginalImages(body) {
+        body.querySelectorAll('.fokus-wikipedia-content img').forEach(image => {
+            if (image.closest('.fokus-wikipedia-related, .mwe-math-element, .mwe-math-fallback-image, .mwe-math-fallback-image-inline, .mwe-math-fallback-image-display')) return;
+            const thumbnail = image.currentSrc || image.src;
+            const original = wikipediaImageSource(image);
+            if (!original || original === thumbnail) return;
+            image.dataset.fokusThumbnailSrc = thumbnail;
+            image.removeAttribute('width');
+            image.removeAttribute('height');
+            image.src = original;
+        });
+    }
+
     function renderContent(body, result, provider, scope = "fokus-content-" + (++sequence)) {
         body.classList.toggle("fokus-wikipedia-content", provider === "wikipedia");
         body.innerHTML = result.html;
-        if (provider === 'wikipedia') layoutWikipedia(body);
+        if (provider === 'wikipedia') {
+            useWikipediaOriginalImages(body);
+            layoutWikipedia(body);
+        }
         const ids = new Map();
         body.querySelectorAll('[id]').forEach(element => {
             const old = element.id;
@@ -157,7 +201,7 @@
     }).observe(document.body, { childList: true, subtree: true });
 
     window.FokusButlerContent = {
-        load: contentFor, render: renderContent,
+        load: contentFor, render: renderContent, wikipediaImageSource,
         wikipedia(url) {
             const parsed = new URL(url);
             return contentFor({ provider: 'wikipedia', url, key: 'wikipedia:' + parsed.hostname + ':' + decodeURIComponent(parsed.pathname.slice(6)) }, false);

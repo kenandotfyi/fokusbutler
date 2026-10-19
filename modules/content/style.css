@@ -15,6 +15,9 @@
     cursor: help;
 }
 .fokus-content-body img { max-width: 100%; height: auto; }
+.fokus-wikipedia-content img:not(.mwe-math-fallback-image-inline):not(.mwe-math-fallback-image-display) {
+    display: block;
+}
 .fokus-content-body pre { max-width: 100%; overflow: auto; }
 .fokus-content-body table { max-width: 100%; font-size: 12px; border-collapse: collapse; }
 .fokus-content-body th, .fokus-content-body td { padding: 4px 6px; border: 1px solid var(--fokus-border, #d6dadd); }
@@ -58,11 +61,25 @@
     margin-inline: auto;
     object-fit: contain;
 }
-.fokus-wikipedia-rail figcaption {
-    margin-top: 6px;
+.fokus-wikipedia-content figure {
+    display: table;
+    box-sizing: border-box;
+    width: fit-content;
+    max-width: 100%;
+    margin: 12px auto;
+    padding: 8px 8px 0;
+    border: 1px solid var(--fokus-border, #d6dadd);
+    background: var(--fokus-surface, #fff);
+    clear: both;
+}
+.fokus-wikipedia-content figure > figcaption {
+    margin-top: 4px;
+    padding: 8px 4px 7px;
+    background: var(--fokus-surface-soft, #f6f7f8);
     color: var(--fokus-muted, #737b86);
     font-size: 12px;
     line-height: 1.4;
+    text-align: center;
 }
 .fokus-content-body .fokus-wikipedia-related {
     margin: 0 0 6px;
@@ -92,6 +109,19 @@
     clear: right;
     width: 38%;
     margin: 0 0 12px 16px;
+}
+:is(.fokus-preview-window, .infinitepanels-pane, .fokus-reference-tooltip)[data-provider="wikipedia"] .fokus-content-body figure.mw-halign-left:not(.fokus-wikipedia-rail figure) {
+    float: left;
+    clear: left;
+    width: 38%;
+    margin: 0 16px 12px 0;
+}
+:is(.fokus-preview-window, .infinitepanels-pane, .fokus-reference-tooltip)[data-provider="wikipedia"] .fokus-content-body figure.mw-halign-center:not(.fokus-wikipedia-rail figure) {
+    float: none;
+    clear: both;
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
 }
 .fokus-content-body math annotation { display: none; }
 @supports (math-style: normal) {

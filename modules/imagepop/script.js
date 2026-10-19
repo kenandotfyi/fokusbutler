@@ -19,6 +19,8 @@
     let invalidSelectorReported = false;
 
     function matchesContentImage(image) {
+        if (image.closest('.fokus-wikipedia-related, .mwe-math-element, .mwe-math-fallback-image, .mwe-math-fallback-image-inline, .mwe-math-fallback-image-display')) return false;
+        if (image.closest('.fokus-wikipedia-content')) return true;
         try {
             return image.matches(CONTENT_IMAGE_SELECTOR);
         } catch (error) {
@@ -31,6 +33,8 @@
     }
 
     function getImageSource(image) {
+        const original = window.FokusButlerContent?.wikipediaImageSource?.(image) || '';
+        if (original) return original;
         const anchor = image.closest('a[href]');
         const candidates = [image.currentSrc, image.src, anchor && anchor.href].filter(Boolean);
 
@@ -61,7 +65,7 @@
     }
 
     function imageItems(root) {
-        let images;
+        let images = [];
         try {
             images = Array.from(root.querySelectorAll(CONTENT_IMAGE_SELECTOR));
         } catch (error) {
@@ -69,11 +73,14 @@
                 console.warn('ImagePop: the configured image selector is invalid.', error);
                 invalidSelectorReported = true;
             }
-            return [];
         }
-        return images.filter((image) => image instanceof HTMLImageElement).map((image) => ({
+        root.querySelectorAll('.fokus-wikipedia-content img').forEach((image) => {
+            if (!image.closest('.fokus-wikipedia-related')) images.push(image);
+        });
+        images = Array.from(new Set(images));
+        return images.filter((image) => image instanceof HTMLImageElement && matchesContentImage(image)).map((image) => ({
             source: getImageSource(image),
-            thumbnailSource: image.currentSrc || image.src,
+            thumbnailSource: image.dataset.fokusThumbnailSrc || image.currentSrc || image.src,
             alt: image.getAttribute('alt') || '',
             title: image.getAttribute('title') || '',
             element: image,
@@ -312,7 +319,7 @@
         if (dialog) return;
         const target = event.target instanceof Element ? event.target : null;
         const image = target && (target.matches('img') ? target : target.closest('img'));
-        const root = image && image.closest('.page.group');
+        const root = image && image.closest('.page.group, .fokus-content-body');
         if (!image || !matchesContentImage(image) || !root) return;
 
         const items = imageItems(root);
