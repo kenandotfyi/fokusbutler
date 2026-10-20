@@ -31,7 +31,9 @@ class PreviewHttp {
     public $timeout, $max_redirect, $max_bodysize, $agent;
     public $headers = [], $resp_headers = [], $status = '200';
     public static $calls = 0;
-    public function get($url) { self::$calls++; return '<h1>Encyclopedia article</h1><p>Full article text.</p>'; }
+    public static $response = null;
+    public static $lastUrl = '';
+    public function get($url) { self::$calls++; self::$lastUrl = $url; return self::$response ?? '<h1>Encyclopedia article</h1><p>Full article text.</p>'; }
 }
 class_alias(PreviewHttp::class, 'dokuwiki\\HTTP\\DokuHTTPClient');
 function io_mkdir_p($dir) { if (!is_dir($dir)) mkdir($dir, 0700, true); }
@@ -109,6 +111,24 @@ try {
     verify(strpos($result['html'], 'Full article text.') !== false, 'String HTTP 200 status was rejected');
     FokusButler_Content_Provider::wikipedia('https://en.wikipedia.org/wiki/Earth');
     verify(PreviewHttp::$calls === 1, 'Wikipedia cache did not suppress repeat fetch');
+    PreviewHttp::$response = json_encode(['pages' => [
+        ['key' => 'Fermi_level', 'title' => 'Fermi level', 'description' => 'Electron energy', 'excerpt' => 'The <span class="searchmatch">Fermi</span> level &amp; electrons.'],
+    ]]);
+    $search = FokusButler_Content_Provider::wikipediaSearch('en', 'Fermi & electrons');
+    verify($search['kind'] === 'search' && count($search['results']) === 1, 'Wikipedia search results were not returned');
+    verify($search['results'][0]['url'] === 'https://en.wikipedia.org/wiki/Fermi_level', 'Search result did not produce a trusted article URL');
+    verify($search['results'][0]['excerpt'] === 'The Fermi level & electrons.', 'Search excerpt retained markup or escaped entities');
+    verify(strpos(PreviewHttp::$lastUrl, '/w/rest.php/v1/search/page?q=Fermi%20%26%20electrons&limit=20') !== false, 'Search API query was not encoded');
+    $calls = PreviewHttp::$calls;
+    FokusButler_Content_Provider::wikipediaSearch('en', 'Fermi & electrons');
+    verify(PreviewHttp::$calls === $calls, 'Search cache did not suppress repeat fetch');
+    foreach ([['en.evil.test','test'], ['en',''], ['en',str_repeat('x',601)], ['en',"bad\nquery"]] as [$language,$query]) {
+        try { FokusButler_Content_Provider::wikipediaSearch($language,$query); verify(false, 'Invalid search accepted'); }
+        catch (RuntimeException $error) { verify($error->getCode() === 400, 'Invalid search did not return 400'); }
+    }
+    PreviewHttp::$response = '{broken';
+    try { FokusButler_Content_Provider::wikipediaSearch('en','uncached failure'); verify(false, 'Broken API response accepted'); }
+    catch (RuntimeException $error) { verify($error->getCode() === 502, 'Broken search response did not return 502'); }
 } finally {
     foreach (glob($directory . '/fokusbutler/preview/*') ?: [] as $file) unlink($file);
     @rmdir($directory . '/fokusbutler/preview'); @rmdir($directory . '/fokusbutler'); @rmdir($directory);

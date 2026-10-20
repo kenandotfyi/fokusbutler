@@ -52,7 +52,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
         $event->data[] = [
             'type' => 'fokusbutlertodoist',
             'title' => $this->getLang('toolbar_title'),
-            'icon' => '../../plugins/fokusbutler/modules/todoist/images/check-square-duotone.svg',
+            'icon' => '../../plugins/fokusbutler/modules/todoist/icons/todoist.svg',
         ];
     }
 

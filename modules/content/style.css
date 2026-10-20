@@ -124,6 +124,14 @@
     margin-inline: auto;
 }
 .fokus-content-body math annotation { display: none; }
+.fokus-wikipedia-search-form { display: flex; gap: 8px; margin: 0 0 16px; }
+.fokus-wikipedia-search-form input { flex: 1; min-width: 0; font-size: 14px; }
+.fokus-wikipedia-search-form button { font-size: 14px; }
+.fokus-wikipedia-search-status { color: var(--fokus-muted, #737b86); }
+.fokus-wikipedia-search-results { padding-inline-start: 24px; }
+.fokus-wikipedia-search-results > li { margin: 0 0 18px; padding-inline-start: 4px; }
+.fokus-wikipedia-search-results > li > a { font-size: 16px; font-weight: 600; }
+.fokus-wikipedia-search-results > li > p { margin: 6px 0 0; }
 /* Wikipedia also uses inline math markup for standalone equations in dd rows. */
 .infinitepanels-pane[data-provider="wikipedia"] .fokus-content-body .mwe-math-element:not(.mwe-math-element-inline):is(.mwe-math-element-block, :has(math[display="block"])),
 .infinitepanels-pane[data-provider="wikipedia"] .fokus-content-body dd > .mwe-math-element:only-child {

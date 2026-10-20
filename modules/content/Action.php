@@ -34,7 +34,9 @@ class FokusButler_Module_Content_Action extends DokuWiki_Action_Plugin
         header('X-Content-Type-Options: nosniff');
         global $INPUT;
         try {
-            if ($INPUT->str('provider') === 'wikipedia') {
+            if ($INPUT->str('provider') === 'wikipedia-search') {
+                $result = FokusButler_Content_Provider::wikipediaSearch($INPUT->str('language'), $INPUT->str('query'));
+            } elseif ($INPUT->str('provider') === 'wikipedia') {
                 $result = FokusButler_Content_Provider::wikipedia($INPUT->str('url'));
             } elseif ($INPUT->str('provider') === 'wiki') {
                 $id = cleanID($INPUT->str('id'));

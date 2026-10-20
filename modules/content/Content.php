@@ -57,6 +57,50 @@ final class FokusButler_Content_Provider
         return $result;
     }
 
+    public static function wikipediaSearch($language, $query)
+    {
+        global $conf;
+        if (!is_string($language) || !preg_match('/^[a-z][a-z0-9-]{0,30}$/D', $language)
+            || !is_string($query) || trim($query) === '' || strlen($query) > 600 || preg_match('/[\x00-\x1f\x7f]/', $query)) {
+            throw new RuntimeException('Unsupported Wikipedia search.', 400);
+        }
+        $query = trim($query);
+        $host = $language . '.wikipedia.org';
+        $url = 'https://' . $host . '/w/index.php?' . http_build_query(['search' => $query], '', '&', PHP_QUERY_RFC3986);
+        $file = rtrim($conf['cachedir'], '/') . '/fokusbutler/preview/search-' . hash('sha256', $url) . '.json';
+        if (is_file($file) && time() - filemtime($file) < 300) {
+            $saved = json_decode((string)file_get_contents($file), true);
+            if (is_array($saved) && isset($saved['results'], $saved['title'])) return $saved;
+        }
+        $http = new \dokuwiki\HTTP\DokuHTTPClient();
+        $http->timeout = 10;
+        $http->max_redirect = 0;
+        $http->max_bodysize = 1024 * 1024;
+        $http->agent = 'FokusButler/1.0 (DokuWiki Wikipedia search)';
+        $http->headers['Accept'] = 'application/json';
+        $response = $http->get('https://' . $host . '/w/rest.php/v1/search/page?' . http_build_query(['q' => $query, 'limit' => 20], '', '&', PHP_QUERY_RFC3986));
+        $data = is_string($response) ? json_decode($response, true) : null;
+        if ((int)$http->status !== 200 || !is_array($data) || !isset($data['pages']) || !is_array($data['pages'])) {
+            throw new RuntimeException('Wikipedia search could not be loaded. Please try again.', 502);
+        }
+        $results = [];
+        foreach (array_slice($data['pages'], 0, 20) as $page) {
+            $title = $page['key'] ?? $page['title'] ?? null;
+            if (!is_string($title) || trim($title) === '' || strlen($title) > 600 || preg_match('/[\x00-\x1f\x7f]/', $title)) continue;
+            $results[] = [
+                'title' => is_string($page['title'] ?? null) ? $page['title'] : str_replace('_', ' ', $title),
+                'url' => 'https://' . $host . '/wiki/' . str_replace('%2F', '/', rawurlencode($title)),
+                'description' => is_string($page['description'] ?? null) ? $page['description'] : '',
+                'excerpt' => is_string($page['excerpt'] ?? null) ? html_entity_decode(strip_tags($page['excerpt']), ENT_QUOTES | ENT_HTML5, 'UTF-8') : '',
+            ];
+        }
+        $result = ['provider' => 'wikipedia', 'kind' => 'search', 'title' => 'Search: ' . $query,
+            'query' => $query, 'language' => $language, 'url' => $url, 'results' => $results];
+        io_mkdir_p(dirname($file));
+        io_saveFile($file, json_encode($result, JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_SLASHES));
+        return $result;
+    }
+
     /** Follow article aliases only within the same edition's article HTML API. */
     public static function wikipediaRedirect($location, $host)
     {
