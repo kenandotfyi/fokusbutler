@@ -1,6 +1,7 @@
 (function () {
     'use strict';
     const windows = new Set();
+    let previewLayer = null;
     let sequence = 0;
     let layer = 15000;
     let pending = null;
@@ -8,6 +9,7 @@
 
     function targetFor(link) {
         if (!link || link.closest('[data-preview-action], [data-pane-original], .fokus-preview-title')) return null;
+        if (link.matches('[rel~="tag"]') || (link.closest('.cloud') && link.matches('a[class*="_tag"]'))) return null;
         if (link.closest('.mw-ref, sup.reference')) return null;
         if (link.getAttribute('href')?.startsWith('#')) return null;
         let url;
@@ -50,6 +52,7 @@
 
     function remove(record) {
         clearTimeout(record.closeTimer);
+        record.resizeObserver?.disconnect();
         windows.delete(record);
         record.element.remove();
         for (const child of Array.from(windows)) {
@@ -84,6 +87,19 @@
         record.element.style.top = Math.max(margin, Math.min(top, innerHeight - height - margin)) + 'px';
     }
 
+    function scrollToFragment(record) {
+        const hash = new URL(record.target.url, location.href).hash.slice(1);
+        if (!hash) return;
+        let fragment = hash;
+        try { fragment = decodeURIComponent(hash); } catch (_) { /* Keep malformed fragments literal. */ }
+        const destination = Array.from(record.body.querySelectorAll('[id]'))
+            .find(element => element.id === fragment || element.dataset.originalId === fragment);
+        if (!destination) return;
+        const padding = Number.parseFloat(getComputedStyle(record.body).paddingTop) || 0;
+        record.body.scrollTop += destination.getBoundingClientRect().top
+            - record.body.getBoundingClientRect().top - record.body.clientTop - padding;
+    }
+
     async function fill(record, refresh = false) {
         record.body.textContent = 'Loading preview…';
         record.body.setAttribute('aria-busy', 'true');
@@ -91,8 +107,11 @@
             const result = await window.FokusButlerContent.load(record.target, refresh);
             if (!windows.has(record)) return;
             record.title.textContent = result.title;
-            record.title.href = result.url;
+            const titleUrl = new URL(result.url, location.href);
+            titleUrl.hash = new URL(record.target.url, location.href).hash;
+            record.title.href = titleUrl.href;
             window.FokusButlerContent.render(record.body, result, record.target.provider, record.element.id);
+            scrollToFragment(record);
         } catch (error) {
             if (!windows.has(record)) return;
             const message = document.createElement('p');
@@ -131,9 +150,18 @@
         trash.setAttribute('aria-label', 'Close preview'); trash.title = 'Close preview'; trash.dataset.previewAction = 'close'; trash.appendChild(icon('trash'));
         bar.append(pin, title, trash);
         const body = document.createElement('div'); body.className = 'fokus-preview-body fokus-content-body'; body.tabIndex = 0;
-        element.append(bar, body); document.body.appendChild(element);
+        if (!previewLayer) {
+            previewLayer = document.createElement('div');
+            previewLayer.className = 'fokus-preview-layer';
+            document.body.appendChild(previewLayer);
+        }
+        element.append(bar, body); previewLayer.appendChild(element);
         const record = { source, target, element, title, body, parent, keyboard, pinned: false, suppressClick: false, closeTimer: null };
         windows.add(record); source.setAttribute('aria-describedby', element.id);
+        record.resizeObserver = new ResizeObserver(() => {
+            if (!record.pinned) position(record);
+        });
+        record.resizeObserver.observe(element);
         position(record); keep(record);
         trash.addEventListener('click', () => remove(record));
         element.addEventListener('pointerenter', () => { record.keyboard = false; keep(record); });

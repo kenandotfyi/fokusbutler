@@ -124,6 +124,11 @@
     margin-inline: auto;
 }
 .fokus-content-body math annotation { display: none; }
+/* Wikipedia also uses inline math markup for standalone equations in dd rows. */
+.infinitepanels-pane[data-provider="wikipedia"] .fokus-content-body .mwe-math-element:not(.mwe-math-element-inline):is(.mwe-math-element-block, :has(math[display="block"])),
+.infinitepanels-pane[data-provider="wikipedia"] .fokus-content-body dd > .mwe-math-element:only-child {
+    zoom: 1.15;
+}
 @supports (math-style: normal) {
     .fokus-content-body .mwe-math-fallback-image-inline,
     .fokus-content-body .mwe-math-fallback-image-display { display: none; }

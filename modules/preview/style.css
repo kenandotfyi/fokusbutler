@@ -1,11 +1,20 @@
 body.fokus-preview-active > .plugin-preview { display: none !important; }
+/* Window ordering stays inside this layer, below the image viewer. */
+.fokus-preview-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 15000;
+    pointer-events: none;
+}
 .fokus-preview-window.dokuwiki {
+    pointer-events: auto;
     position: fixed;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
     width: min(var(--fokus-preview-width, 560px), calc(100vw - 24px));
-    height: min(var(--fokus-preview-height, 480px), calc(100vh - 24px));
+    height: auto;
+    max-height: min(var(--fokus-preview-height, 480px), calc(100vh - 24px));
     margin: 0;
     border: 1px solid var(--fokus-border, #c8ccd0);
     border-radius: var(--fokus-control-radius, 3px);
