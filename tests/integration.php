@@ -37,8 +37,8 @@ try {
     $INFO = pageinfo();
     verify(auth_isadmin(), 'Test admin authentication failed');
     $butler = plugin_load('helper', 'fokusbutler');
-    verify($butler && count($butler->modules()) === 9, 'Module manifest unavailable');
-    foreach (['assets', 'content', 'pagehealth', 'imagepop', 'notegraph', 'preview', 'snips', 'todoist'] as $module) {
+    verify($butler && count($butler->modules()) === 10, 'Module manifest unavailable');
+    foreach (['assets', 'content', 'pagehealth', 'imagepop', 'notegraph', 'preview', 'snips', 'todoist', 'memos'] as $module) {
         verify((bool)plugin_load('action', 'fokusbutler_' . $module), 'Missing action: ' . $module);
     }
     foreach (['foldclosed', 'foldopen', 'pagehealth', 'todoist'] as $component) {
@@ -97,7 +97,7 @@ try {
         verify(strpos(file_get_contents(FOKUSBUTLER_ROOT . '/modules/' . $module . '/script.js'), 'window.' . $function . ' = ') !== false, 'Toolbar handler not exported: ' . $function);
     }
 
-    foreach (['settings', 'pagehealth', 'imagepop', 'preview', 'snips', 'todoist'] as $module) {
+    foreach (['settings', 'pagehealth', 'imagepop', 'preview', 'snips', 'todoist', 'memos'] as $module) {
         $panel = FokusButler_Modules::admin($module);
         verify((bool)$panel, 'Admin panel missing: ' . $module);
         ob_start();
@@ -107,7 +107,7 @@ try {
         verify(strpos($html, 'name="module" value="' . $module . '"') !== false || strpos($html, 'module=' . $module) !== false, 'Admin form route missing: ' . $module);
     }
 
-    foreach (['folding', 'todoist', 'pagehealth', 'snips', 'imagepop', 'notegraph', 'preview'] as $module) $conf['plugin']['fokusbutler']['enabled_' . $module] = 0;
+    foreach (['folding', 'todoist', 'pagehealth', 'snips', 'imagepop', 'notegraph', 'preview', 'memos'] as $module) $conf['plugin']['fokusbutler']['enabled_' . $module] = 0;
     $disabledFolds = domFor(renderSyntax($folds));
     verify($disabledFolds->query('//div[contains(@class,"fokus-fold__content")][@hidden]')->length === 0, 'Disabled folding hid existing content');
     verify($disabledFolds->query('//button[@data-fokus-fold-toggle]')->length === 0, 'Disabled folding still rendered interactive toggles');

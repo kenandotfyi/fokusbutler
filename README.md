@@ -24,6 +24,7 @@ Tag, Move, MoaiEditor, Preview, Annotations, and KaTeX remain external plugins. 
 | `preview` | Full wiki and Wikipedia hover previews, scrolling, and titlebar drag-to-pin |
 | `snips` | Configurable insert/wrap snippets and existing-tag picker |
 | `todoist` | `{{todoistcompanion>Task\|id=abcd1234}}`, due dates, completion, `~~TODOS~~` |
+| `memos` | Jots capture, Memos v0.31 timeline, tag filters, and a private local note/attachment mirror. See [module setup](modules/memos/README.md). |
 
 Fold delimiters belong on separate lines around block content. A toolbar shortcut can be added as a Snips wrap entry. Syntax strings remain the same; DokuWiki component names and AJAX endpoints belong to Fokus Butler.
 

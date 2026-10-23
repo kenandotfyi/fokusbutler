@@ -271,10 +271,17 @@ function localTimeString(date) {
             .attr('aria-busy', 'false')
             .attr('aria-label', completed ? 'Completed task' : 'Complete task')
             .prop('disabled', completed || !synced || !result.canComplete);
-        const statusText = !synced
+        const statusText = result.unavailable
+            ? 'Deleted or no longer active in Todoist'
+            : (!synced
             ? 'Waiting for Todoist sync'
-            : (result.duePending ? 'Task date could not sync' : '');
+            : (result.duePending ? 'Task date could not sync' : ''));
         $status.removeClass('is-error').text(statusText);
+    }
+
+    function removeTaskRow(element) {
+        jQuery(element).closest('.todoistcompanion-task').fadeOut(120, function () { jQuery(this).remove(); });
+        document.dispatchEvent(new CustomEvent('fokus:statuschange'));
     }
 
     function loadTaskState(element, refresh) {
@@ -292,10 +299,12 @@ function localTimeString(date) {
             timeout: 10000,
             data: {
                 task: $task.attr('data-todoistcompanion-task'),
-                page: $task.attr('data-page')
+                page: $task.attr('data-page'),
+                sectok: (typeof JSINFO !== 'undefined' && JSINFO.todoistcompanion) ? JSINFO.todoistcompanion.token : ''
             }
         }).done(function (result) {
             if (result && result.ok) {
+                if (result.removed) { removeTaskRow(element); return; }
                 setTaskState(element, result);
                 return;
             }
@@ -361,6 +370,7 @@ function localTimeString(date) {
                 }
             }).done(function (result) {
                 if (result && result.ok) {
+                    if (result.removed) { removeTaskRow($task[0]); return; }
                     setTaskState($task[0], { ok: true, synced: true, completed: true, canComplete: false });
                     document.dispatchEvent(new CustomEvent('fokus:statuschange'));
                     return;

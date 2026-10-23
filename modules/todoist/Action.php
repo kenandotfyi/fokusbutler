@@ -8,6 +8,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
     use FokusButler_ModuleContext;
     protected const MODULE = 'todoist';
     private $apiError = '';
+    private $apiStatus = 0;
 
     public function register(Doku_Event_Handler $controller)
     {
@@ -121,11 +122,23 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
                 echo json_encode(['ok' => true, 'synced' => false, 'completed' => false, 'canComplete' => false]);
                 return;
             }
+            $record = $this->refreshWikiTaskAvailability($taskKey, $record);
+            $removed = false;
+            if (!empty($record['remote_missing']) && checkSecurityToken() && auth_quickaclcheck($pageId) >= AUTH_EDIT) {
+                try {
+                    $this->removeUnavailableWikiTask($taskKey, $pageId);
+                    $removed = true;
+                } catch (RuntimeException $error) {
+                    // Leave the unavailable reference in place and retry on the next editor view.
+                }
+            }
             echo json_encode([
                 'ok' => true,
+                'removed' => $removed,
                 'synced' => !empty($record['todoist_id']),
                 'completed' => !empty($record['completed']),
-                'canComplete' => !empty($record['todoist_id']) && empty($record['completed']) && auth_quickaclcheck($pageId) >= AUTH_EDIT,
+                'unavailable' => !empty($record['remote_missing']),
+                'canComplete' => !empty($record['todoist_id']) && empty($record['completed']) && empty($record['remote_missing']) && auth_quickaclcheck($pageId) >= AUTH_EDIT,
                 'duePending' => !empty($record['due_datetime_local']) && ($record['due_status'] ?? '') !== 'synced',
             ]);
             return;
@@ -155,6 +168,19 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
 
         $taskId = (string)($tasks[$taskKey]['todoist_id'] ?? '');
         if ($taskId === '' || !$this->closeTodoistTask($taskId)) {
+            if ($taskId !== '' && $this->apiStatus === 404) {
+                $tasks[$taskKey]['remote_missing'] = true;
+                $tasks[$taskKey]['remote_checked_at'] = time();
+                $this->saveTasks($tasks);
+                try {
+                    $this->removeUnavailableWikiTask($taskKey, $pageId);
+                    echo json_encode(['ok' => true, 'removed' => true, 'unavailable' => true]);
+                } catch (RuntimeException $error) {
+                    http_response_code(409);
+                    echo json_encode(['error' => 'This task was deleted or is no longer active in Todoist, but the page could not be cleaned up automatically. ' . $error->getMessage()]);
+                }
+                return;
+            }
             http_response_code(502);
             echo json_encode(['error' => $this->apiError ?: 'Todoist could not complete the task.']);
             return;
@@ -321,8 +347,57 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
         return $this->request('POST', '/tasks/' . rawurlencode($taskId) . '/close') !== null;
     }
 
+    /** Verify linked tasks occasionally; a Todoist 404 means the task is no longer active. */
+    private function refreshWikiTaskAvailability($key, array $record)
+    {
+        if (empty($record['todoist_id']) || !empty($record['completed'])) return $record;
+        if (time() - (int)($record['remote_checked_at'] ?? 0) < 300) return $record;
+        $remote = $this->request('GET', '/tasks/' . rawurlencode((string)$record['todoist_id']));
+        $tasks = $this->loadTasks();
+        if (!isset($tasks[$key]) || ($tasks[$key]['todoist_id'] ?? '') !== $record['todoist_id']) return $record;
+        $tasks[$key]['remote_checked_at'] = time();
+        if ($remote === null && $this->apiStatus === 404) $tasks[$key]['remote_missing'] = true;
+        elseif (is_array($remote)) unset($tasks[$key]['remote_missing']);
+        $this->saveTasks($tasks);
+        return $tasks[$key];
+    }
+
+    /** Remove only this unavailable task's syntax from the wiki source. */
+    private function removeUnavailableWikiTask($key, $pageId)
+    {
+        $tasks = $this->loadTasks();
+        if (!isset($tasks[$key]) || ($tasks[$key]['page'] ?? '') !== $pageId || empty($tasks[$key]['remote_missing'])) {
+            throw new RuntimeException('This task is not marked as unavailable in Todoist.', 404);
+        }
+        if (auth_quickaclcheck($pageId) < AUTH_EDIT || !page_exists($pageId)) throw new RuntimeException('You cannot edit this page.', 403);
+        checklock($pageId);
+        if (is_file(wikiLockFN($pageId))) throw new RuntimeException('This page is currently being edited. Save or close the editor, then try again.', 409);
+        lock($pageId);
+        try {
+            $source = rawWiki($pageId);
+            if (!is_string($source)) throw new RuntimeException('Could not read the wiki page.', 500);
+            $removed = 0;
+            $updated = preg_replace_callback('/\{\{todoistcompanion>(.*?)\}\}/s', function ($match) use ($key, &$removed) {
+                $parsed = $this->parseTaskSyntax($match[1]);
+                if ($parsed && $parsed[0] === $key) { $removed++; return ''; }
+                return $match[0];
+            }, $source);
+            if (!is_string($updated) || !$removed) {
+                unset($tasks[$key]);
+                $this->saveTasks($tasks);
+                return;
+            }
+            saveWikiText($pageId, $updated, 'Removed Todoist task that is no longer active');
+            unset($tasks[$key]);
+            $this->saveTasks($tasks);
+        } finally {
+            unlock($pageId);
+        }
+    }
+
     protected function request($method, $path, $payload = null)
     {
+        $this->apiStatus = 0;
         $token = $this->apiToken();
         if ($token === '') return null;
         $url = 'https://api.todoist.com/api/v1' . $path;
@@ -346,6 +421,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
         foreach ($http_response_header ?? [] as $header) {
             if (preg_match('/^HTTP\/\S+\s+(\d+)/i', $header, $match)) $status = (int)$match[1];
         }
+        $this->apiStatus = $status;
         if ($status < 200 || $status >= 300) {
             $this->apiError = 'Todoist returned HTTP ' . $status . '.';
             return null;
@@ -454,6 +530,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
         $cache = is_file($cacheFile) ? json_decode((string)@file_get_contents($cacheFile), true) : [];
         $cache = is_array($cache) ? $cache : [];
         if (($cache['project'] ?? '') !== $this->projectName()) $cache = [];
+        $snapshotRefreshed = false;
         if (time() - ($cache['attempted_at'] ?? 0) >= 20) {
             // Serialize refreshes across simultaneous panes and requests.
             io_mkdir_p($this->storageDirectory());
@@ -475,6 +552,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
                     }));
                     $this->syncTodoistCompletion($projectId, $active);
                     $cache = ['project' => $this->projectName(), 'project_id' => $projectId, 'tasks' => $active, 'synced_at' => time()];
+                    $snapshotRefreshed = true;
                 }
                 $cache['attempted_at'] = time();
                 $cache['project'] = $this->projectName();
@@ -501,6 +579,16 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
             }
         }
         $archivedTasks = $byId;
+        if ($snapshotRefreshed) {
+            $activeIds = [];
+            foreach ($cache['tasks'] ?? [] as $task) {
+                if (is_array($task) && !empty($task['id'])) $activeIds[(string)$task['id']] = true;
+            }
+            // Retain completed history, but drop uncompleted tasks absent from a good active snapshot.
+            foreach ($byId as $id => $task) {
+                if (empty($task['is_completed']) && !isset($activeIds[(string)$id])) unset($byId[$id]);
+            }
+        }
         foreach ($cache['tasks'] ?? [] as $task) {
             if (is_array($task) && !empty($task['id']) && ($projectId === '' || (string)($task['project_id'] ?? '') === $projectId)) {
                 $task['is_completed'] = false;

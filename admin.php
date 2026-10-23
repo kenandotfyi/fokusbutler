@@ -111,7 +111,7 @@ class admin_plugin_fokusbutler extends DokuWiki_Admin_Plugin
     {
         $icons = ['modules'=>'dots-six', 'settings'=>'gear-fine', 'content'=>'books',
             'folding'=>'arrows-out-line-vertical', 'pagehealth'=>'heartbeat', 'imagepop'=>'image',
-            'notegraph'=>'graph', 'preview'=>'browser', 'snips'=>'exam'];
+            'notegraph'=>'graph', 'preview'=>'browser', 'snips'=>'exam', 'memos'=>'pen-nib'];
         $file = $module === 'todoist' ? __DIR__ . '/modules/todoist/icons/todoist.svg'
             : __DIR__ . '/core/icons/' . ($icons[$module] ?? 'dots-six') . '-duotone.svg';
         return '<span class="fokusbutler-nav-icon' . ($module === 'todoist' ? ' fokusbutler-nav-icon-todoist' : '') . '" aria-hidden="true">' . file_get_contents($file) . '</span>';

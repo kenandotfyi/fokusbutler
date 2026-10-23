@@ -21,6 +21,7 @@
     function matchesContentImage(image) {
         if (image.closest('.fokus-wikipedia-related, .mwe-math-element, .mwe-math-fallback-image, .mwe-math-fallback-image-inline, .mwe-math-fallback-image-display')) return false;
         if (image.closest('.fokus-wikipedia-content')) return true;
+        if (image.closest('.fokus-jots-markdown') && image.hasAttribute('src')) return true;
         try {
             return image.matches(CONTENT_IMAGE_SELECTOR);
         } catch (error) {
@@ -77,6 +78,7 @@
         root.querySelectorAll('.fokus-wikipedia-content img').forEach((image) => {
             if (!image.closest('.fokus-wikipedia-related')) images.push(image);
         });
+        root.querySelectorAll('.fokus-jots-markdown img[src]').forEach(image => images.push(image));
         images = Array.from(new Set(images));
         return images.filter((image) => image instanceof HTMLImageElement && matchesContentImage(image)).map((image) => ({
             source: getImageSource(image),
