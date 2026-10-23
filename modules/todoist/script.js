@@ -362,6 +362,7 @@ function localTimeString(date) {
             }).done(function (result) {
                 if (result && result.ok) {
                     setTaskState($task[0], { ok: true, synced: true, completed: true, canComplete: false });
+                    document.dispatchEvent(new CustomEvent('fokus:statuschange'));
                     return;
                 }
                 $button.prop('disabled', false);

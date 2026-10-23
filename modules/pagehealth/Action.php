@@ -146,9 +146,10 @@ class FokusButler_Module_Pagehealth_Action extends ActionPlugin
         echo json_encode($result);
     }
 
-    private function getSummaryStats()
+    public function getSummaryStats($visibleIds = null)
     {
         $pages = $this->loadClassifications();
+        if (is_array($visibleIds)) $pages = array_intersect_key($pages, array_fill_keys($visibleIds, true));
         $healthy = 0;
         $noContent = 0;
         foreach ($pages as $id => $empty) {
