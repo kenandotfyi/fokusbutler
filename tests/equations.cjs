@@ -46,7 +46,7 @@ console.log('PASS: ' + templates + ' equation templates render with the installe
   }};
  };
  const script = fs.readFileSync(require('path').join(__dirname, '../modules/equations/script.js'),'utf8')
-  .replace("import(new URL('vendor/mathlive.min.mjs', base).href)", 'window.importModule()')
+  .replace("import(new URL('vendor/mathlive.min.js', base).href)", 'window.importModule()')
   .replace('// Match complete supported math delimiters', 'api.loadForTest = load;\n    // Match complete supported math delimiters');
  vm.runInNewContext(script, iframe);
  await iframe.window.FokusButlerEquations.loadForTest();

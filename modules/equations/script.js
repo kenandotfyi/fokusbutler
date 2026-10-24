@@ -4,7 +4,7 @@
     const api = window.FokusButlerEquations = {};
     let library;
     function load() {
-        return library ||= import(new URL('vendor/mathlive.min.mjs', base).href).then(module => {
+        return library ||= import(new URL('vendor/mathlive.min.js', base).href).then(module => {
             module.MathfieldElement.fontsDirectory = new URL('vendor/fonts', base).href;
             module.MathfieldElement.soundsDirectory = null;
             // Fokus hosts Moai in an iframe. The default iframe keyboard is a
