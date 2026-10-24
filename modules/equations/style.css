@@ -1,4 +1,4 @@
-@import url("vendor/mathlive-static.css");
+@import url("mathlive/mathlive-static.css");
 .fokus-equations { width: min(880px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--fokus-border, #ccc); border-radius: 0; background: var(--fokus-surface, #fff); color: var(--fokus-text, #222); font: 14px/1.5 system-ui, sans-serif; }
 .fokus-equations::backdrop { background: rgb(0 0 0 / 35%); }
 .fokus-equations header, .fokus-equations footer { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
