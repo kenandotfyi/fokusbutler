@@ -229,28 +229,37 @@ function localTimeString(date) {
             data: { page: list.dataset.page }
         }).done(function (result) {
             if (!result || !result.ok) {
+                listWarning(list, result && result.error || 'Todoist tasks could not be refreshed. The list may be out of date.');
                 if (!list.dataset.signature) list.replaceChildren(textElement('li', 'todoistcompanion-todos-empty', result && result.error || 'Todoist tasks could not be loaded.'));
                 return;
             }
             const tasks = result.tasks || [];
-            const signature = JSON.stringify(tasks);
+            const signature = JSON.stringify([result.available, tasks]);
             if (list.dataset.signature !== signature) {
                 list.dataset.signature = signature;
                 const fragment = document.createDocumentFragment();
                 tasks.forEach(task => fragment.appendChild(renderIncomingTask(task, list.dataset.page, result.timezone)));
-                if (!tasks.length) fragment.appendChild(textElement('li', 'todoistcompanion-todos-empty', 'No Todoist tasks.'));
+                if (!tasks.length) fragment.appendChild(textElement('li', 'todoistcompanion-todos-empty', result.available === false ? 'Todoist tasks are unavailable.' : 'No Todoist tasks.'));
                 list.replaceChildren(fragment);
                 list.hidden = false;
+                document.dispatchEvent(new CustomEvent('fokus:statuschange'));
             }
-            let warning = list.parentElement.querySelector('.todoistcompanion-list-error');
-            if (result.error) {
-                if (!warning) { warning = textElement('p', 'todoistcompanion-task-error todoistcompanion-list-error'); list.parentElement.insertBefore(warning, list); }
-                warning.textContent = result.error + ' The list may be out of date.';
-            } else if (warning) warning.remove();
+            listWarning(list, result.error ? result.error + ' The list may be out of date.' : '');
         }).fail(function (xhr) {
-            if (list.dataset.signature) return;
-            list.replaceChildren(textElement('li', 'todoistcompanion-todos-empty', 'Todoist tasks could not be loaded.'));
+            listWarning(list, 'Todoist tasks could not be refreshed. Previously loaded tasks may be out of date.');
+            if (!list.dataset.signature) list.replaceChildren(textElement('li', 'todoistcompanion-todos-empty', 'Todoist tasks could not be loaded.'));
         }).always(function () { delete list.dataset.loading; });
+    }
+
+    function listWarning(list, message) {
+        let warning = list.parentElement.querySelector('.todoistcompanion-list-error');
+        if (!message) { warning?.remove(); return; }
+        if (!warning) {
+            warning = textElement('p', 'todoistcompanion-task-error todoistcompanion-list-error');
+            warning.setAttribute('role', 'status');
+            list.parentElement.insertBefore(warning, list);
+        }
+        warning.textContent = message;
     }
 
     function scanIncoming(root) {
@@ -329,13 +338,16 @@ function localTimeString(date) {
     jQuery(function () {
         scanTasks(document);
         scanIncoming(document);
-        window.setInterval(function () {
+        function refreshVisibleTasks() {
             if (document.visibilityState !== 'visible') return;
             document.querySelectorAll('.todoistcompanion-incoming[data-page]').forEach(loadIncomingTasks);
             document.querySelectorAll('[data-todoistcompanion-task]').forEach(function (element) {
                 loadTaskState(element, true);
             });
-        }, 20000);
+        }
+        window.setInterval(refreshVisibleTasks, 20000);
+        document.addEventListener('visibilitychange', refreshVisibleTasks);
+        window.addEventListener('focus', refreshVisibleTasks);
         const observer = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
                 mutation.addedNodes.forEach(function (node) { scanTasks(node); scanIncoming(node); });
@@ -370,8 +382,9 @@ function localTimeString(date) {
                 }
             }).done(function (result) {
                 if (result && result.ok) {
-                    if (result.removed) { removeTaskRow($task[0]); return; }
-                    setTaskState($task[0], { ok: true, synced: true, completed: true, canComplete: false });
+                    if (result.removed) removeTaskRow($task[0]);
+                    else setTaskState($task[0], { ok: true, synced: true, completed: true, canComplete: false });
+                    document.querySelectorAll('.todoistcompanion-incoming[data-page]').forEach(loadIncomingTasks);
                     document.dispatchEvent(new CustomEvent('fokus:statuschange'));
                     return;
                 }
@@ -379,6 +392,7 @@ function localTimeString(date) {
                 $status.addClass('is-error').text(result && result.error ? result.error : 'Todoist sync failed.');
             }).fail(function (xhr, status) {
                 $button.prop('disabled', false);
+                document.querySelectorAll('.todoistcompanion-incoming[data-page]').forEach(loadIncomingTasks);
                 const message = status === 'timeout'
                     ? 'Todoist did not respond in time. Try again.'
                     : (xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : 'Could not sync with Todoist.');

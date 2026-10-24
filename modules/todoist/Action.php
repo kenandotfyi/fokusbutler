@@ -9,6 +9,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
     protected const MODULE = 'todoist';
     private $apiError = '';
     private $apiStatus = 0;
+    private $resolvedProject = [];
 
     public function register(Doku_Event_Handler $controller)
     {
@@ -96,7 +97,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
                 return;
             }
             $snapshot = $this->getProjectTasks($pageId);
-            echo json_encode(['ok' => true, 'tasks' => array_values($snapshot['tasks']), 'error' => $snapshot['error'], 'timezone' => date_default_timezone_get()], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            echo json_encode(['ok' => true, 'tasks' => array_values($snapshot['tasks']), 'error' => $snapshot['error'], 'available' => $snapshot['available'], 'stale' => $snapshot['stale'] ?? false, 'syncedAt' => $snapshot['syncedAt'] ?? 0, 'timezone' => date_default_timezone_get()], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             return;
         }
         $taskKey = $INPUT->post->str('task');
@@ -239,6 +240,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
             }
         }
         $this->saveTasks($tasks);
+        $this->invalidateProjectSnapshot();
     }
 
     private function parseTaskSyntax($body)
@@ -324,27 +326,29 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
 
     private function getOrCreateProject()
     {
-        $state = $this->loadProject();
-        if (!empty($state['id']) && ($state['name'] ?? '') === $this->projectName()) return (string)$state['id'];
-
-        $projects = $this->request('GET', '/projects');
-        if (!is_array($projects)) return null;
-        foreach (($projects['results'] ?? $projects) as $project) {
-            if (is_array($project) && strcasecmp((string)($project['name'] ?? ''), $this->projectName()) === 0) {
-                $this->saveProject(['id' => (string)$project['id'], 'name' => $this->projectName()]);
-                return (string)$project['id'];
-            }
+        $scope = $this->snapshotScope();
+        if (($this->resolvedProject['scope'] ?? '') === $scope) return $this->resolvedProject['id'];
+        $projectId = $this->findProject();
+        if ($projectId === null) return null;
+        if ($projectId !== '') {
+            $this->saveProject(['id' => $projectId, 'name' => $this->projectName(), 'scope' => $this->snapshotScope()]);
+            $this->resolvedProject = ['scope' => $scope, 'id' => $projectId];
+            return $projectId;
         }
 
         $created = $this->request('POST', '/projects', ['name' => $this->projectName()]);
         if (!is_array($created) || empty($created['id'])) return null;
-        $this->saveProject(['id' => (string)$created['id'], 'name' => $this->projectName()]);
+        $this->saveProject(['id' => (string)$created['id'], 'name' => $this->projectName(), 'scope' => $this->snapshotScope()]);
+        $this->resolvedProject = ['scope' => $scope, 'id' => (string)$created['id']];
         return (string)$created['id'];
     }
 
     private function closeTodoistTask($taskId)
     {
-        return $this->request('POST', '/tasks/' . rawurlencode($taskId) . '/close') !== null;
+        $closed = $this->request('POST', '/tasks/' . rawurlencode($taskId) . '/close') !== null;
+        // Even a failed response may have reached Todoist; reconcile on retry.
+        $this->invalidateProjectSnapshot($closed ? $taskId : null);
+        return $closed;
     }
 
     /** Verify linked tasks occasionally; a Todoist 404 means the task is no longer active. */
@@ -356,8 +360,11 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
         $tasks = $this->loadTasks();
         if (!isset($tasks[$key]) || ($tasks[$key]['todoist_id'] ?? '') !== $record['todoist_id']) return $record;
         $tasks[$key]['remote_checked_at'] = time();
-        if ($remote === null && $this->apiStatus === 404) $tasks[$key]['remote_missing'] = true;
-        elseif (is_array($remote)) unset($tasks[$key]['remote_missing']);
+        if (($remote === null && in_array($this->apiStatus, [404, 410], true)) || (is_array($remote) && !empty($remote['is_deleted']))) $tasks[$key]['remote_missing'] = true;
+        elseif (is_array($remote)) {
+            unset($tasks[$key]['remote_missing']);
+            $tasks[$key]['completed'] = !empty($remote['checked']) || !empty($remote['is_completed']);
+        }
         $this->saveTasks($tasks);
         return $tasks[$key];
     }
@@ -398,6 +405,7 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
     protected function request($method, $path, $payload = null)
     {
         $this->apiStatus = 0;
+        $this->apiError = '';
         $token = $this->apiToken();
         if ($token === '') return null;
         $url = 'https://api.todoist.com/api/v1' . $path;
@@ -522,117 +530,30 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
         return $page === 'fokusbutler:admin' ? auth_isadmin() : auth_quickaclcheck($page) >= AUTH_EDIT;
     }
 
-    /** Read the configured project's current tasks and locally retained task history. */
+    /** One remote-backed snapshot powers both ~~TODOS~~ and the statusbar. */
     public function getProjectTasks($page)
     {
-        if (!$this->canReadImportedTasks($page)) return ['tasks' => [], 'error' => ''];
-        $cacheFile = $this->storageDirectory() . '/incoming.json';
-        $cache = is_file($cacheFile) ? json_decode((string)@file_get_contents($cacheFile), true) : [];
-        $cache = is_array($cache) ? $cache : [];
-        if (($cache['project'] ?? '') !== $this->projectName()) $cache = [];
-        $snapshotRefreshed = false;
-        if (time() - ($cache['attempted_at'] ?? 0) >= 20) {
-            // Serialize refreshes across simultaneous panes and requests.
-            io_mkdir_p($this->storageDirectory());
-            $lock = @fopen($this->storageDirectory() . '/incoming.lock', 'c');
-            if ($lock && flock($lock, LOCK_EX | LOCK_NB)) {
-                $this->apiError = '';
-                $projects = $this->fetchCollection('/projects');
-                $projectId = null;
-                foreach ($projects ?? [] as $project) {
-                    if (strcasecmp((string)($project['name'] ?? ''), $this->projectName()) === 0) {
-                        $projectId = (string)$project['id'];
-                        break;
-                    }
-                }
-                $remote = $projects === null ? null : ($projectId === null ? [] : $this->fetchCollection('/tasks?project_id=' . rawurlencode($projectId)));
-                if ($remote !== null) {
-                    $active = array_values(array_filter($remote, static function ($task) use ($projectId) {
-                        return is_array($task) && !empty($task['id']) && (string)($task['project_id'] ?? '') === $projectId;
-                    }));
-                    $this->syncTodoistCompletion($projectId, $active);
-                    $cache = ['project' => $this->projectName(), 'project_id' => $projectId, 'tasks' => $active, 'synced_at' => time()];
-                    $snapshotRefreshed = true;
-                }
-                $cache['attempted_at'] = time();
-                $cache['project'] = $this->projectName();
-                $cache['error'] = $remote === null ? ($this->apiError ?: 'Todoist connection is not configured.') : '';
-                $this->writeJson('incoming.json', $cache);
-                flock($lock, LOCK_UN);
-            }
-            if ($lock) fclose($lock);
-        }
-        $completion = $this->syncTodoistCompletion();
-        $projectId = (string)($completion['project_id'] ?? ($cache['project_id'] ?? ''));
-        $historyFile = $this->storageDirectory() . '/history.json';
-        $history = is_file($historyFile) ? json_decode((string)@file_get_contents($historyFile), true) : [];
-        $history = is_array($history) ? $history : [];
-        $historyChanged = !is_file($historyFile) || ($history['project'] ?? '') !== $this->projectName()
-            || ($projectId !== '' && !empty($history['project_id']) && (string)$history['project_id'] !== $projectId);
-        if ($historyChanged) {
-            $history = [];
-        }
-        $byId = is_array($history['tasks'] ?? null) ? $history['tasks'] : [];
-        foreach ($byId as $id => $task) {
-            if (!is_array($task) || empty($task['id']) || ($projectId !== '' && !empty($task['project_id']) && (string)$task['project_id'] !== $projectId)) {
-                unset($byId[$id]);
-            }
-        }
-        $archivedTasks = $byId;
-        if ($snapshotRefreshed) {
-            $activeIds = [];
-            foreach ($cache['tasks'] ?? [] as $task) {
-                if (is_array($task) && !empty($task['id'])) $activeIds[(string)$task['id']] = true;
-            }
-            // Retain completed history, but drop uncompleted tasks absent from a good active snapshot.
-            foreach ($byId as $id => $task) {
-                if (empty($task['is_completed']) && !isset($activeIds[(string)$id])) unset($byId[$id]);
-            }
-        }
-        foreach ($cache['tasks'] ?? [] as $task) {
-            if (is_array($task) && !empty($task['id']) && ($projectId === '' || (string)($task['project_id'] ?? '') === $projectId)) {
-                $task['is_completed'] = false;
-                $byId[(string)$task['id']] = $task;
-            }
-        }
-        foreach ($completion['completed_tasks'] ?? [] as $task) {
-            if (!is_array($task) || empty($task['id']) || (string)($task['project_id'] ?? '') !== $projectId) continue;
-            $id = (string)$task['id'];
+        if (!$this->canReadImportedTasks($page)) return ['tasks' => [], 'error' => '', 'available' => false];
+        $snapshot = $this->refreshProjectSnapshot();
+        $this->applyTodoistCompletion($this->snapshotStates($snapshot));
+        $byId = [];
+        foreach ($snapshot['completed_tasks'] ?? [] as $task) {
             $task['is_completed'] = true;
-            $byId[$id] = $task;
+            $byId[(string)$task['id']] = $task;
         }
-        // Seed the archive from existing wiki task records so older linked tasks
-        // survive even if their page syntax was removed before this archive existed.
-        $wikiRecords = $this->loadTasks();
-        foreach ($wikiRecords as $record) {
-            $id = (string)($record['todoist_id'] ?? '');
-            if ($id === '' || isset($byId[$id]) || $projectId === '') continue;
-            $byId[$id] = [
-                'id' => $id,
-                'project_id' => $projectId,
-                'content' => (string)($record['title'] ?? 'Todoist task'),
-                'description' => '',
-                'is_completed' => !empty($record['completed']),
-            ];
+        foreach ($snapshot['tasks'] ?? [] as $task) {
+            // Active wins for recurring and reopened tasks.
+            $task['is_completed'] = false;
+            $byId[(string)$task['id']] = $task;
         }
-        if ($projectId !== '' && ($historyChanged || $archivedTasks !== $byId)) {
-            $this->writeJson('history.json', [
-                'project' => $this->projectName(),
-                'project_id' => $projectId,
-                'tasks' => $byId,
-                'updated_at' => time(),
-            ]);
-        }
-
-        $tasks = [];
         $wikiById = [];
-        foreach ($wikiRecords as $record) {
+        foreach ($this->loadTasks() as $record) {
             if (!empty($record['todoist_id'])) $wikiById[(string)$record['todoist_id']] = $record;
         }
-        foreach ($byId as $task) {
-            if (!is_array($task) || empty($task['id'])) continue;
-            $record = $wikiById[(string)$task['id']] ?? null;
-            $wikiPage = is_array($record) ? (string)($record['page'] ?? '') : '';
+        $tasks = [];
+        foreach ($byId as $id => $task) {
+            // Local records can supply a backlink, never resurrect a remote task.
+            $wikiPage = (string)($wikiById[$id]['page'] ?? '');
             if ($wikiPage !== '' && auth_quickaclcheck($wikiPage) >= AUTH_READ
                 && (!function_exists('page_exists') || page_exists($wikiPage))) {
                 $task['wiki_page'] = $wikiPage;
@@ -640,119 +561,154 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
                 $task['wiki_page_title'] = $pageTitle !== '' ? $pageTitle : $wikiPage;
                 $task['wiki_page_url'] = function_exists('wl') ? wl($wikiPage) : '';
             }
-            $task['key'] = 'todoist-' . hash('sha256', (string)$task['id']);
+            $task['key'] = 'todoist-' . hash('sha256', (string)$id);
             $tasks[$task['key']] = $task;
         }
-        $error = (string)($cache['error'] ?? '');
-        if ($error === '') $error = (string)($completion['error'] ?? '');
-        return ['tasks' => $tasks, 'error' => $error];
+        $error = (string)($snapshot['error'] ?? '');
+        if ($error === '') $error = (string)($snapshot['completion_error'] ?? '');
+        if (empty($snapshot['available']) && $error === '') $error = 'Todoist tasks are still being refreshed.';
+        return ['tasks' => $tasks, 'error' => $error,
+            'available' => !empty($snapshot['available']),
+            'stale' => !empty($snapshot['error']) || (int)($snapshot['synced_at'] ?? 0) < time() - 120,
+            'syncedAt' => (int)($snapshot['synced_at'] ?? 0)];
     }
 
-    /** Refresh completion state from active tasks and recent completed-task history. */
-    private function syncTodoistCompletion($projectId = null, $activeTasks = null)
+    /** Scope cached IDs and snapshots to the configured account and project. */
+    private function snapshotScope()
     {
-        $cache = $this->loadCompletionState();
-        if ($projectId === null) {
-            if (($cache['project_name'] ?? '') === $this->projectName()) $projectId = (string)($cache['project_id'] ?? '');
-            if ($projectId === '') {
-                $saved = $this->loadProject();
-                if (($saved['name'] ?? '') === $this->projectName()) $projectId = (string)($saved['id'] ?? '');
-            }
-        }
-        if ($projectId !== null && $projectId !== '' && ($cache['project_id'] ?? '') !== $projectId) $cache = [];
-        if (time() - (int)($cache['attempted_at'] ?? 0) < 20) {
-            $this->applyTodoistCompletion($cache['states'] ?? []);
-            return $cache;
-        }
+        return hash('sha256', $this->apiToken() . "\n" . $this->projectName());
+    }
 
+    private function loadProjectSnapshot()
+    {
+        $file = $this->storageDirectory() . '/incoming.json';
+        $cache = is_file($file) ? json_decode((string)@file_get_contents($file), true) : [];
+        // Ignore legacy history/completion caches: they contain synthetic/stale rows.
+        return is_array($cache) && ($cache['version'] ?? 0) === 2
+            && ($cache['scope'] ?? '') === $this->snapshotScope() ? $cache : [];
+    }
+
+    /** Resolve a unique active project, following every page; reads never create it. */
+    private function findProject()
+    {
+        $projects = $this->fetchCollection('/projects');
+        if ($projects === null) return null;
+        $matches = [];
+        foreach ($projects as $project) {
+            if (!is_array($project) || empty($project['id']) || !empty($project['is_deleted']) || !empty($project['is_archived'])) continue;
+            if (strcasecmp((string)($project['name'] ?? ''), $this->projectName()) === 0) $matches[(string)$project['id']] = true;
+        }
+        if (count($matches) > 1) {
+            $this->apiError = 'Multiple Todoist projects are named ' . $this->projectName() . '. Give the intended project a unique name in the Todoist settings.';
+            return null;
+        }
+        return $matches ? (string)array_key_first($matches) : '';
+    }
+
+    /** Keep last good data on failure; successful empty responses clear old tasks. */
+    private function refreshProjectSnapshot()
+    {
+        $cache = $this->loadProjectSnapshot();
+        if (time() - (int)($cache['attempted_at'] ?? 0) < 20) return $cache;
         io_mkdir_p($this->storageDirectory());
-        $lock = @fopen($this->storageDirectory() . '/completion.lock', 'c');
+        $lock = @fopen($this->storageDirectory() . '/incoming.lock', 'c');
         if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
             if ($lock) fclose($lock);
-            $this->applyTodoistCompletion($cache['states'] ?? []);
             return $cache;
         }
         try {
-            // Another request may have refreshed while this one waited for the lock.
-            $latest = $this->loadCompletionState();
-            if ($projectId !== null && $projectId !== '' && ($latest['project_id'] ?? '') !== $projectId) $latest = [];
-            if (time() - (int)($latest['attempted_at'] ?? 0) < 20) {
-                $this->applyTodoistCompletion($latest['states'] ?? []);
-                return $latest;
-            }
-            $cache = $latest;
-            if ($projectId === null || $projectId === '') {
-                $projects = $this->fetchCollection('/projects');
-                if ($projects !== null) {
-                    foreach ($projects as $project) {
-                        if (strcasecmp((string)($project['name'] ?? ''), $this->projectName()) === 0) {
-                            $projectId = (string)$project['id'];
-                            break;
-                        }
-                    }
+            // Re-read under the lock so parallel panes cannot publish older data.
+            $cache = $this->loadProjectSnapshot();
+            if (time() - (int)($cache['attempted_at'] ?? 0) < 20) return $cache;
+            $this->apiError = '';
+            $projectId = $this->findProject();
+            $active = $projectId === null ? null : ($projectId === '' ? [] : $this->fetchCollection('/tasks?project_id=' . rawurlencode($projectId)));
+            if ($active === null) {
+                $cache['error'] = $this->apiError ?: 'Could not refresh the Todoist project. Showing the last successful snapshot.';
+            } else {
+                if (($cache['project_id'] ?? '') !== $projectId) $cache = [];
+                $cache['tasks'] = $this->projectRows($active, $projectId, false);
+                $cache['project_id'] = $projectId;
+                $cache['synced_at'] = time();
+                $cache['available'] = true;
+                $cache['error'] = '';
+                // A full bounded window also removes deleted completed tasks. A
+                // delta merged with local history cannot establish deletions.
+                $completed = $projectId === '' ? [] : $this->fetchCompletedTasks($projectId,
+                    gmdate('Y-m-d\TH:i:s\Z', time() - 89 * 86400), gmdate('Y-m-d\TH:i:s\Z'));
+                if ($completed === null) {
+                    $cache['completion_error'] = 'Active tasks are current, but completed Todoist tasks could not be refreshed. ' . $this->apiError;
                 } else {
-                    $projectId = null;
+                    $cache['completed_tasks'] = $this->projectRows($completed, $projectId, true);
+                    $cache['completion_error'] = '';
                 }
             }
-            if ($projectId === null || $projectId === '') {
-                $cache['attempted_at'] = time();
-                $cache['project_name'] = $this->projectName();
-                $cache['error'] = $projectId === null ? ($this->apiError ?: 'Could not load the Todoist project.') : '';
-                $this->writeJson('completion.json', $cache);
-                $this->applyTodoistCompletion($cache['states'] ?? []);
-                return $cache;
-            }
-
-            $this->apiError = '';
-            if (!is_array($activeTasks)) $activeTasks = $this->fetchCollection('/tasks?project_id=' . rawurlencode($projectId));
-            $lastSuccess = (int)($cache['synced_at'] ?? 0);
-            $sinceTimestamp = $lastSuccess > 0 ? max(time() - 89 * 86400, $lastSuccess - 86400) : time() - 89 * 86400;
-            $since = gmdate('Y-m-d\TH:i:s\Z', $sinceTimestamp);
-            $until = gmdate('Y-m-d\TH:i:s\Z');
-            $completed = $this->fetchCompletedTasks($projectId, $since, $until);
-            if ($activeTasks === null || $completed === null) {
-                $cache['attempted_at'] = time();
-                $cache['project_id'] = (string)$projectId;
-                $cache['project_name'] = $this->projectName();
-                $cache['error'] = $this->apiError ?: 'Could not refresh Todoist task completion state.';
-                $this->writeJson('completion.json', $cache);
-                $this->applyTodoistCompletion($cache['states'] ?? []);
-                return $cache;
-            }
-
-            $states = is_array($cache['states'] ?? null) ? $cache['states'] : [];
-            $completedTasks = is_array($cache['completed_tasks'] ?? null) ? $cache['completed_tasks'] : [];
-            $cutoff = time() - 89 * 86400;
-            foreach ($completed as $task) {
-                if (!is_array($task) || empty($task['id']) || (string)($task['project_id'] ?? '') !== (string)$projectId) continue;
-                $id = (string)$task['id'];
-                $states[$id] = ['completed' => true, 'updated_at' => time()];
-                $task['is_completed'] = true;
-                $completedTasks[$id] = $task;
-            }
-            foreach ($activeTasks as $task) {
-                if (!is_array($task) || empty($task['id']) || (string)($task['project_id'] ?? '') !== (string)$projectId) continue;
-                $id = (string)$task['id'];
-                // Active wins for recurring tasks and tasks reopened in Todoist.
-                $states[$id] = ['completed' => false, 'updated_at' => time()];
-                unset($completedTasks[$id]);
-            }
-            foreach ($completedTasks as $id => $task) {
-                $completedAt = strtotime((string)($task['completed_at'] ?? ''));
-                if ($completedAt !== false && $completedAt < $cutoff) unset($completedTasks[$id]);
-            }
-            $cache = [
-                'project_id' => (string)$projectId,
-                'project_name' => $this->projectName(),
-                'states' => $states,
-                'completed_tasks' => $completedTasks,
-                'attempted_at' => time(),
-                'synced_at' => time(),
-                'error' => '',
-            ];
-            $this->writeJson('completion.json', $cache);
-            $this->applyTodoistCompletion($states);
+            $cache['version'] = 2;
+            $cache['scope'] = $this->snapshotScope();
+            $cache['project'] = $this->projectName();
+            $cache['attempted_at'] = time();
+            if (!$this->writeJson('incoming.json', $cache)) $cache['error'] = 'The Todoist snapshot could not be saved. Check the wiki metadata directory permissions.';
             return $cache;
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private function projectRows(array $rows, $projectId, $completed)
+    {
+        $result = [];
+        foreach ($rows as $task) {
+            if (!is_array($task) || empty($task['id']) || (string)($task['project_id'] ?? '') !== (string)$projectId || !empty($task['is_deleted'])) continue;
+            if (!$completed && (!empty($task['checked']) || !empty($task['is_completed']))) continue;
+            $task['is_completed'] = $completed;
+            $result[(string)$task['id']] = $task;
+        }
+        return array_values($result);
+    }
+
+    private function snapshotStates(array $snapshot)
+    {
+        $states = [];
+        foreach ($snapshot['completed_tasks'] ?? [] as $task) $states[(string)$task['id']] = ['completed' => true, 'updated_at' => $snapshot['synced_at'] ?? time()];
+        foreach ($snapshot['tasks'] ?? [] as $task) $states[(string)$task['id']] = ['completed' => false, 'updated_at' => $snapshot['synced_at'] ?? time()];
+        return $states;
+    }
+
+    private function syncTodoistCompletion()
+    {
+        $snapshot = $this->refreshProjectSnapshot();
+        $this->applyTodoistCompletion($this->snapshotStates($snapshot));
+        return $snapshot;
+    }
+
+    /** Preserve the last good snapshot while forcing reconciliation after a write. */
+    private function invalidateProjectSnapshot($completedId = null)
+    {
+        io_mkdir_p($this->storageDirectory());
+        $lock = @fopen($this->storageDirectory() . '/incoming.lock', 'c');
+        if (!$lock) return;
+        try {
+            if (!flock($lock, LOCK_EX)) return;
+            $cache = $this->loadProjectSnapshot();
+            if ($cache) {
+                if ($completedId !== null) {
+                    foreach ($cache['tasks'] ?? [] as $index => $task) {
+                        if ((string)$task['id'] !== (string)$completedId || !empty($task['due']['is_recurring'])) continue;
+                        unset($cache['tasks'][$index]);
+                        $task['is_completed'] = true;
+                        $task['checked'] = true;
+                        $task['completed_at'] = gmdate('Y-m-d\TH:i:s\Z');
+                        $cache['completed_tasks'] = array_values(array_filter($cache['completed_tasks'] ?? [], static function ($row) use ($completedId) {
+                            return (string)$row['id'] !== (string)$completedId;
+                        }));
+                        $cache['completed_tasks'][] = $task;
+                    }
+                    $cache['tasks'] = array_values($cache['tasks'] ?? []);
+                }
+                $cache['attempted_at'] = 0;
+                $this->writeJson('incoming.json', $cache);
+            }
         } finally {
             flock($lock, LOCK_UN);
             fclose($lock);
@@ -770,6 +726,12 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
             if ($cursor !== null) $path .= '&cursor=' . rawurlencode($cursor);
             $response = $this->request('GET', $path);
             if (!is_array($response) || !isset($response['items']) || !is_array($response['items'])) return null;
+            foreach ($response['items'] as $row) {
+                if (!is_array($row) || empty($row['id']) || !isset($row['project_id'])) {
+                    $this->apiError = 'Todoist returned an invalid completed-task collection.';
+                    return null;
+                }
+            }
             $all = array_merge($all, $response['items']);
             $cursor = $response['next_cursor'] ?? null;
             if ($cursor !== null) {
@@ -780,14 +742,6 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
         return $all;
     }
 
-    private function loadCompletionState()
-    {
-        $file = $this->storageDirectory() . '/completion.json';
-        if (!is_file($file)) return [];
-        $data = json_decode((string)@file_get_contents($file), true);
-        return is_array($data) ? $data : [];
-    }
-
     private function applyTodoistCompletion(array $states)
     {
         if (!$states) return;
@@ -796,6 +750,10 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
         foreach ($tasks as &$task) {
             $id = (string)($task['todoist_id'] ?? '');
             if ($id === '' || !isset($states[$id])) continue;
+            if (!empty($task['remote_missing']) && (int)($states[$id]['updated_at'] ?? 0) > (int)($task['remote_checked_at'] ?? 0)) {
+                unset($task['remote_missing']);
+                $changed = true;
+            }
             $completed = !empty($states[$id]['completed']);
             if (!array_key_exists('completed', $task) || (bool)$task['completed'] !== $completed) {
                 $task['completed'] = $completed;
@@ -818,6 +776,14 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
             $url = $path . ($cursor === null ? '' : (strpos($path, '?') === false ? '?' : '&') . 'cursor=' . rawurlencode($cursor));
             $response = $this->request('GET', $url);
             if (!is_array($response) || !isset($response['results']) || !is_array($response['results'])) return null;
+            foreach ($response['results'] as $row) {
+                if (!is_array($row) || empty($row['id'])
+                    || (strpos($path, '/tasks?') === 0 && !isset($row['project_id']))
+                    || ($path === '/projects' && !isset($row['name']))) {
+                    $this->apiError = 'Todoist returned an invalid collection.';
+                    return null;
+                }
+            }
             $all = array_merge($all, $response['results']);
             $cursor = $response['next_cursor'] ?? null;
             if ($cursor !== null) {
@@ -852,7 +818,8 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
             return;
         }
         $current = $this->request('GET', '/tasks/' . rawurlencode((string)$task['id']));
-        if (!is_array($current) || !isset($current['project_id']) || (string)$current['project_id'] !== (string)$task['project_id'] || (!empty($current['is_completed']) || !empty($current['checked']))) {
+        if (!is_array($current) || !isset($current['project_id']) || (string)$current['project_id'] !== (string)$task['project_id'] || (!empty($current['is_completed']) || !empty($current['checked']) || !empty($current['is_deleted']))) {
+            $this->invalidateProjectSnapshot();
             http_response_code(409);
             echo json_encode(['error' => 'Task changed in Todoist. Reload the list before completing it.']);
             return;
@@ -863,21 +830,12 @@ class FokusButler_Module_Todoist_Action extends DokuWiki_Action_Plugin
             return;
         }
         // Refresh on next view, including recurring tasks with a new due date.
-        @unlink($this->storageDirectory() . '/incoming.json');
         echo json_encode(['ok' => true, 'completed' => true]);
     }
 
     private function saveTasks($tasks)
     {
         return $this->writeJson('tasks.json', $tasks);
-    }
-
-    private function loadProject()
-    {
-        $file = $this->storageDirectory() . '/project.json';
-        if (!is_file($file)) return [];
-        $data = json_decode((string)@file_get_contents($file), true);
-        return is_array($data) ? $data : [];
     }
 
     private function saveProject($project)
