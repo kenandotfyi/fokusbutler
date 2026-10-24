@@ -6,6 +6,7 @@
     let layer = 15000;
     let pending = null;
     let config;
+    let dragging = false;
 
     function targetFor(link) {
         if (!link || link.closest('[data-preview-action], [data-pane-original], .fokus-preview-title')) return null;
@@ -62,6 +63,23 @@
         }
         if (record.source.getAttribute('aria-describedby') === record.element.id) record.source.removeAttribute('aria-describedby');
         if (record.parent) dismissLater(record.parent);
+    }
+
+    function setDragging(active) {
+        dragging = active;
+        if (active) {
+            clearTimeout(pending?.timer);
+            pending = null;
+            for (const record of Array.from(windows)) if (!record.pinned) remove(record);
+        }
+        // Keep pinned previews intact, but take the whole layer out of the drag path.
+        if (previewLayer) previewLayer.hidden = active;
+    }
+
+    function startDrag(event) {
+        setDragging(true);
+        // A rejected dragstart has no dragend event (for example a multi-selection).
+        Promise.resolve().then(() => { if (event.defaultPrevented) setDragging(false); });
     }
 
     function icon(name) {
@@ -123,6 +141,7 @@
     }
 
     function open(source, keyboard = false, providedTarget = null) {
+        if (dragging) return;
         const target = providedTarget || targetFor(source);
         if (!target) return;
         const existing = Array.from(windows).find(record => record.source === source);
@@ -221,7 +240,7 @@
     }
 
     function begin(source, target, keyboard = false) {
-        if (!source || !target) return;
+        if (dragging || !source || !target) return;
         if (pending?.source === source) return;
         clearTimeout(pending?.timer);
         const record = Array.from(windows).find(item => item.source === source);
@@ -257,6 +276,9 @@
         config = window.FokusButlerPreviewConfig;
         if (!config?.enabled || window.FokusButlerPreviews) return;
         document.body.classList.add('fokus-preview-active');
+        document.addEventListener('dragstart', startDrag, true);
+        document.addEventListener('dragend', () => setDragging(false), true);
+        document.addEventListener('drop', () => setDragging(false), true);
         document.addEventListener('pointerover', enter);
         document.addEventListener('pointerout', leave);
         document.addEventListener('focusin', enter);

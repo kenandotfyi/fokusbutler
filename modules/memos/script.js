@@ -28,11 +28,21 @@
         return data;
     }
     function publish(statusOnly = false) { for (const view of views) { if (view.root.isConnected) statusOnly ? view.updateStatus() : view.render(); else views.delete(view); } }
+    function publishJotsStatus(syncing = !!refreshing) {
+        document.dispatchEvent(new CustomEvent('fokus:jots-status', {detail: {
+            total: snapshot.syncedAt || snapshot.memos.length ? snapshot.memos.length : null,
+            syncedAt: snapshot.syncedAt,
+            syncing: syncing || (!!snapshot.syncing && !errorMessage && !snapshot.syncError),
+            stale: !syncing && (!!errorMessage || !!snapshot.syncError),
+        }}));
+    }
     async function readLocal() {
         if (loading) return loading;
         loading = request('list').then(data => {
             const unchanged = JSON.stringify([snapshot.memos, snapshot.files, snapshot.pending]) === JSON.stringify([data.memos, data.files, data.pending]);
-            snapshot = data; publish(unchanged); return data;
+            snapshot = data; publish(unchanged);
+            publishJotsStatus();
+            return data;
         }).finally(() => { loading = null; });
         return loading;
     }
@@ -40,7 +50,7 @@
         if (!config.configured) return;
         if (refreshing) return refreshing;
         refreshing = (async () => {
-            syncMessage = 'Refreshing from Memos…'; errorMessage = ''; publish(true);
+            syncMessage = 'Refreshing from Memos…'; errorMessage = ''; publish(true); publishJotsStatus(true);
             try {
                 let more = true, first = true;
                 while (more) {
@@ -50,7 +60,7 @@
                 }
                 await readLocal();
             } catch (error) { errorMessage = error.message; throw error; }
-            finally { syncMessage = ''; refreshing = null; publish(true); }
+            finally { syncMessage = ''; refreshing = null; publish(true); publishJotsStatus(false); }
         })();
         return refreshing;
     }
@@ -148,10 +158,10 @@
         if (composer) return;
         const dialog = node('dialog', 'fokus-jots-dialog'); dialog.setAttribute('aria-labelledby', 'fokus-jots-title');
         const form = node('form');
-        const header = node('header', 'fokus-jots-composer-header');
+        const header = node('header', 'fokus-jots-composer-header fokus-popup-header');
         const title = node('h2', '', 'Quick jot'); title.id = 'fokus-jots-title';
-        const browse = button('Browse jots', () => { dialog.close(); openPane(); }, 'fokus-jots-quiet');
-        const close = button('Close', () => dialog.close(), 'fokus-jots-quiet');
+        const browse = iconButton('Browse jots', new URL('notepad-duotone.svg', new URL(config.icon, window.location.href)).href, () => { dialog.close(); openPane(); }, 'fokus-popup-close');
+        const close = iconButton('Close Quick jot', new URL('x-square-duotone.svg', new URL(config.icon, window.location.href)).href, () => dialog.close(), 'fokus-popup-close');
         header.append(icon(), title, browse, close);
         const text = node('textarea'); text.placeholder = 'What’s on your mind?'; text.setAttribute('aria-label', 'Jot text'); text.rows = 9; text.maxLength = 1000000;
         const attach = button('', () => {
@@ -232,9 +242,9 @@
         const dialog = node('dialog', 'fokus-jots-dialog fokus-jots-promote-dialog');
         dialog.setAttribute('aria-labelledby', 'fokus-jots-promote-title');
         const form = node('form');
-        const header = node('header', 'fokus-jots-composer-header');
+        const header = node('header', 'fokus-jots-composer-header fokus-popup-header');
         const title = node('h2', '', 'Turn jot into wiki page'); title.id = 'fokus-jots-promote-title';
-        header.append(icon(), title, button('Cancel', () => dialog.close(), 'fokus-jots-quiet'));
+        header.append(icon(), title, iconButton('Close promotion', new URL('x-square-duotone.svg', new URL(config.icon, window.location.href)).href, () => dialog.close(), 'fokus-popup-close'));
         const label = node('label', 'fokus-jots-field-label', 'Page ID'); label.htmlFor = 'fokus-jots-page-id';
         const target = node('input', 'fokus-jots-page-id'); target.id = 'fokus-jots-page-id'; target.required = true; target.maxLength = 512;
         const slug = (memo.content.split('\n').find(line => line.trim()) || memo.name.slice(6)).normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}_-]+/gu, '_').replace(/^_+|_+$/g, '').slice(0, 70);
@@ -274,7 +284,7 @@
         });
         dialog.showModal(); target.focus(); target.select();
     }
-    function buildPane() {
+    function buildPane(memoName = null) {
         const parsedDocument = document.implementation.createHTMLDocument('Jots');
         const content = node('div', 'pad group fokus-jots-provider');
         const banner = node('div', 'topBanner');
@@ -289,7 +299,8 @@
         const tags = node('select'); tags.setAttribute('aria-label', 'Filter jots by tag');
         const state = node('select'); state.setAttribute('aria-label', 'Filter active or archived jots');
         for (const [value, label] of [['all', 'All notes'], ['NORMAL', 'Active'], ['ARCHIVED', 'Archived']]) { const option = node('option', '', label); option.value = value; state.append(option); }
-        controls.append(create, search, tags, state, refreshButton);
+        if (memoName) controls.append(button('All jots', () => openPane(), 'fokus-jots-quiet'), create, refreshButton);
+        else controls.append(create, search, tags, state, refreshButton);
         const status = node('p', 'fokus-jots-sync-status'); status.setAttribute('role', 'status');
         const pending = node('div', 'fokus-jots-pending');
         const list = node('div', 'fokus-jots-list');
@@ -308,7 +319,7 @@
             for (const [tag, count] of [...counts].sort((a, b) => a[0].localeCompare(b[0]))) { const option = node('option', '', '#' + tag + ' · ' + count); option.value = tag; tags.append(option); }
             tags.value = counts.has(selectedTag) ? selectedTag : '';
             pending.replaceChildren();
-            for (const op of snapshot.pending) {
+            for (const op of snapshot.pending.filter(op => !memoName || op.name === memoName)) {
                 const card = node('article', 'fokus-jots-pending-card');
                 card.append(node('strong', '', op.conflict ? 'Changes need review' : 'Save pending'), node('p', '', op.error || 'This jot is saved locally and waiting for Memos.'), node('pre', '', op.content));
                 if (!op.conflict) card.append(button('Retry save', () => retryPending(op), 'fokus-jots-quiet'));
@@ -324,13 +335,13 @@
                 pending.append(card);
             }
             const query = search.value.trim().toLocaleLowerCase();
-            const notes = snapshot.memos.filter(m => (!tags.value || (m.tags || []).includes(tags.value)) && (state.value === 'all' || (m.state || 'NORMAL') === state.value) && (!query || (m.content || '').toLocaleLowerCase().includes(query)))
+            const notes = snapshot.memos.filter(m => (!memoName || m.name === memoName) && (!tags.value || (m.tags || []).includes(tags.value)) && (state.value === 'all' || (m.state || 'NORMAL') === state.value) && (!query || (m.content || '').toLocaleLowerCase().includes(query)))
                 .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || String(b.createTime || '').localeCompare(String(a.createTime || '')));
             list.replaceChildren();
             if (!config.configured) {
                 list.append(node('p', 'fokus-jots-empty', 'Connect Memos to bring your notes and attachments into this pane.'));
                 if (config.settingsUrl) { const link = node('a', '', 'Open Jots settings'); link.href = config.settingsUrl; list.append(link); }
-            } else if (!notes.length) list.append(node('p', 'fokus-jots-empty', snapshot.syncedAt ? 'No jots match these filters.' : 'Your notes will appear after the first synchronization.'));
+            } else if (!notes.length) list.append(node('p', 'fokus-jots-empty', snapshot.syncedAt ? (memoName ? 'This jot is no longer in your local mirror.' : 'No jots match these filters.') : 'Your notes will appear after the first synchronization.'));
             for (const memo of notes.slice(0, limit)) {
                 const card = node('article', 'fokus-jots-card');
                 const header = node('header', 'fokus-jots-card-header');
@@ -354,16 +365,25 @@
         for (const field of [search, tags, state]) field.addEventListener(field === search ? 'input' : 'change', () => { limit = 30; render(); });
         const view = { root: content, render, updateStatus }; views.add(view); render();
         setTimeout(startReading, 0);
-        return { content, parsedDocument, provider: 'memos', title: 'Jots', url: paneUrl() };
+        return { content, parsedDocument, provider: 'memos', title: memoName ? 'Jot' : 'Jots', url: paneUrl(memoName ? 'jots.memo.' + memoName.slice(6) : 'jots.inbox') };
     }
-    function paneUrl() { const url = new URL(config.homeUrl, location.origin); url.searchParams.set('p', 'jots.inbox'); return url.href; }
+    function paneUrl(id = 'jots.inbox') { const url = new URL(config.homeUrl, location.origin); url.searchParams.set('p', id); return url.href; }
     function openPane() {
         if (window.infinitepanelsOpenPage) window.infinitepanelsOpenPage(paneUrl(), true, 'jots.inbox');
         else location.href = paneUrl();
     }
+    const jotPaneId = id => /^jots\.memo\.[a-zA-Z0-9][a-zA-Z0-9-]{0,35}$/.test(id);
+    function jotTarget(value) {
+        try {
+            const url = new URL(value, location.href), id = url.searchParams.get('p');
+            if (url.origin !== location.origin || url.username || url.password || url.hash || url.pathname !== new URL(config.homeUrl).pathname || !jotPaneId(id)) return null;
+            return {id, url:paneUrl(id)};
+        } catch (_) { return null; }
+    }
     if (window.FokusPaneProviders) window.FokusPaneProviders.register({
-        name: 'memos', matches: id => id === 'jots.inbox', urlForId: () => paneUrl(),
-        async load() { return buildPane(); }
+        name: 'memos', matches: id => id === 'jots.inbox' || jotPaneId(id), urlForId: paneUrl,
+        fromUrl: jotTarget, fromLink: link => jotTarget(link.href),
+        async load(id) { return buildPane(jotPaneId(id) ? 'memos/' + id.slice('jots.memo.'.length) : null); }
     });
     window.FokusButlerJots = { open: openComposer, browse: openPane, refresh };
     function boot() {

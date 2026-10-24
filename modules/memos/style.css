@@ -20,7 +20,7 @@ html[data-theme="dark"] .fokus-jots-icon { filter: invert(.85); }
 .fokus-jots-composer-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .fokus-jots-composer-footer small { color: var(--fokus-muted); font-size: 12px; }
 .fokus-jots-primary, .fokus-jots-quiet, .fokus-jots-tag, .fokus-jots-delete, .fokus-jots-action { box-sizing: border-box; border: 1px solid var(--fokus-border, #ccc); border-radius: var(--fokus-control-radius, 4px); padding: 5px 9px; background: var(--fokus-control-background, #fff); color: var(--fokus-control-text, #333); font: inherit; line-height: 1.4; cursor: pointer; }
-.dokuwiki .fokus-jots-primary, .fokus-jots-dialog .fokus-jots-primary { background: var(--fokus-vault-accent, #272727); border-color: var(--fokus-vault-accent, #272727); color: var(--fokus-on-accent, #fff); white-space: nowrap; }
+.dokuwiki .fokus-jots-primary, .fokus-jots-dialog .fokus-jots-primary { background: var(--fokus-accent-soft, #eee); border-color: var(--fokus-accent, #555); color: var(--fokus-text, #222); white-space: nowrap; }
 .fokus-jots-quiet, .fokus-jots-delete, .fokus-jots-action { background: transparent; border-color: transparent; }
 .fokus-jots-quiet:hover, .fokus-jots-tag:hover, .fokus-jots-delete:hover, .fokus-jots-action:hover { background: var(--fokus-row-hover-background); }
 .fokus-jots-primary:disabled, .fokus-jots-quiet:disabled, .fokus-jots-delete:disabled, .fokus-jots-action:disabled { opacity: .5; cursor: default; }
@@ -70,3 +70,7 @@ html[data-theme="dark"] .fokus-jots-delete img, html[data-theme="dark"] .fokus-j
     .fokus-jots-composer-footer { flex-wrap: wrap; }
     .fokus-jots-controls input { flex-basis: 100%; }
 }
+
+.fokus-jots-dialog { border-radius: var(--fokus-radius); }
+.fokus-jots-dialog .fokus-jots-composer-header { margin: -18px -18px 16px; padding: .5rem .75rem; background: var(--fokus-surface-soft); border-bottom: 1px solid var(--fokus-border); }
+.fokus-jots-composer-header h2 { font-size: 14px; }

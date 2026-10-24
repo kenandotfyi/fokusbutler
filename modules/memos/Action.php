@@ -41,6 +41,27 @@ class FokusButler_Module_Memos_Action extends DokuWiki_Action_Plugin
         }
         FokusButler_Assets::add($event, 'memos');
     }
+    public function searchAvailable()
+    {
+        return self::allowed() && FokusButler_Memos_Connection::url() !== '' && FokusButler_Memos_Connection::credential()['source'] !== 'missing';
+    }
+    public function searchLocal($query, $offset = 0, $limit = 20, $mode = 'words')
+    {
+        if (!$this->searchAvailable()) throw new RuntimeException('Jots search is unavailable for this account.', 403);
+        require_once __DIR__ . '/Search.php';
+        global $conf;
+        $store = new FokusButler_Memos_Store(new FokusButler_Memos_Connection(), $conf['metadir'], $_SERVER['REMOTE_USER']);
+        return FokusButler_Memos_Search::query($store->snapshot()['memos'], $query, $offset, $limit, $mode);
+    }
+
+    public function getSummaryStats()
+    {
+        if (!self::allowed() || FokusButler_Memos_Connection::url() === '' || FokusButler_Memos_Connection::credential()['source'] === 'missing') return null;
+        global $conf;
+        $store = new FokusButler_Memos_Store(new FokusButler_Memos_Connection(), $conf['metadir'], $_SERVER['REMOTE_USER']);
+        return $store->summary();
+    }
+
     public function handleRequest(Doku_Event $event, $param)
     {
         if ($event->data !== 'fokusbutler_memos') return;

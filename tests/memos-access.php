@@ -26,9 +26,14 @@ namespace {
     function check($condition) { global $checks; if (!$condition) throw new RuntimeException('Access/connection assertion failed at ' . ($checks + 1)); $checks++; }
     function rejects($run, $code) { try { $run(); } catch (RuntimeException $e) { check($e->getCode() === $code); return; } throw new RuntimeException('Expected rejection'); }
     unset($_SERVER['REMOTE_USER']); check(!FokusButler_Module_Memos_Action::allowed());
+    check((new FokusButler_Module_Memos_Action())->getSummaryStats() === null);
+    check(!(new FokusButler_Module_Memos_Action())->searchAvailable());
+    rejects(function () { (new FokusButler_Module_Memos_Action())->searchLocal('private'); }, 403);
     $_SERVER['REMOTE_USER'] = 'another-reader'; check(!FokusButler_Module_Memos_Action::allowed());
+    rejects(function () { (new FokusButler_Module_Memos_Action())->searchLocal('private'); }, 403);
     $_SERVER['REMOTE_USER'] = 'ken'; check(FokusButler_Module_Memos_Action::allowed());
-    FokusButler_Modules::$enabled = false; check(!FokusButler_Module_Memos_Action::allowed()); FokusButler_Modules::$enabled = true;
+    FokusButler_Modules::$enabled = false; check(!FokusButler_Module_Memos_Action::allowed());
+    rejects(function () { (new FokusButler_Module_Memos_Action())->searchLocal('private'); }, 403); FokusButler_Modules::$enabled = true;
     FokusButler_Modules::$values['wiki_user'] = ''; check(!FokusButler_Module_Memos_Action::allowed()); $admin = true; check(FokusButler_Module_Memos_Action::allowed());
     $client = new FokusButler_Memos_Connection('https://memos.example', 'fixture-token');
     check($client->request('GET', '/memos?pageSize=100') === ['memos' => []]);

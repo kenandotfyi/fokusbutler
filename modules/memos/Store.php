@@ -60,6 +60,16 @@ class FokusButler_Memos_Store
             'syncedAt' => $snapshot['syncedAt'], 'syncing' => (bool)$stage,
             'syncError' => $this->read('status')['error'] ?? '', 'url' => $this->connection->baseUrl()];
     }
+    /** Local totals only: reading the status bar never makes a remote request. */
+    public function summary()
+    {
+        $snapshot = $this->read('snapshot', ['memos' => [], 'syncedAt' => 0]);
+        $count = count($snapshot['memos']);
+        return ['total' => ($snapshot['syncedAt'] || $count) ? $count : null,
+            'syncedAt' => $snapshot['syncedAt'], 'syncing' => (bool)$this->read('stage'),
+            'stale' => !empty($this->read('status')['error'])];
+    }
+
     private function collectFiles(array $memos)
     {
         $files = [];

@@ -210,7 +210,7 @@
         activeIndex = index;
         returnFocus = trigger;
 
-        dialog = document.createElement('div');
+        dialog = document.createElement('dialog');
         dialog.className = 'wiki-imagepop';
         dialog.setAttribute('role', 'dialog');
         dialog.setAttribute('aria-modal', 'true');
@@ -311,6 +311,8 @@
         if (gallery.length > 1) dialog.appendChild(thumbnails);
         dialog.appendChild(info);
         document.body.appendChild(dialog);
+        dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
+        dialog.showModal();
         document.documentElement.classList.add('wiki-imagepop-open');
         showItem(index);
         closeButton.focus({ preventScroll: true });
@@ -370,5 +372,5 @@
 
     document.addEventListener('click', onClick, true);
     document.addEventListener('keydown', onKeyDown, true);
-    window.FokusButlerImagePop = { close };
+    window.FokusButlerImagePop = { close, openImage(source, alt, trigger, thumbnailSource = source) { open([{source, alt, title: '', thumbnailSource, element: trigger}], 0, trigger); } };
 })();

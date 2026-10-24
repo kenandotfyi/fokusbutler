@@ -22,6 +22,7 @@ Tag, Move, MoaiEditor, Preview, Annotations, and KaTeX remain external plugins. 
 | `imagepop` | Image lightbox, gallery, zoom/pan, configurable image selectors |
 | `notegraph` | Local graph from each page's banner, including additional panes |
 | `preview` | Full wiki and Wikipedia hover previews, scrolling, and titlebar drag-to-pin |
+| `media` | Media Library with pane links, namespace browsing, file management, version history, image metadata, and editor insertion. See [module guide](modules/media/README.md). |
 | `snips` | Configurable insert/wrap snippets and existing-tag picker |
 | `todoist` | `{{todoistcompanion>Task\|id=abcd1234}}`, due dates, completion, `~~TODOS~~` |
 | `memos` | Jots capture, Memos v0.31 timeline, tag filters, and a private local note/attachment mirror. See [module setup](modules/memos/README.md). |
@@ -87,6 +88,9 @@ Run integration checks against an isolated DokuWiki installation with this plugi
 ```sh
 DOKUWIKI_TEST_ROOT=/path/to/isolated/dokuwiki php tests/integration.php
 node tests/editor.cjs
+node tests/media.cjs
+DOKUWIKI_TEST_ROOT=/path/to/isolated/dokuwiki php tests/media.php
+DOKUWIKI_TEST_ROOT=/path/to/isolated/dokuwiki php tests/media-management.php
 php tests/todoist.php
 php tests/preview.php
 ```
@@ -98,3 +102,9 @@ Scripts and stylesheets use plain URLs without version parameters. After develop
 Phosphor duotone assets are covered by `PHOSPHOR-LICENSE.txt`; module-specific licenses are retained beside their modules.
 
 The Butler admin page uses a grouped module sidebar with the selected settings panel on the right. The active section remains in the URL, so browser Back and direct links continue to work. Narrow windows place the navigation above the selected panel. Content providers is an always-available shared service; Page previews controls full-page hover windows independently.
+
+Media Library usability: preview images open in ImagePop when enabled, including from editor/admin dialogs. Namespaces use collapsible branches with folder icons and guide lines; branch expansion stays intact while browsing within the open library. Fokus supplies shared pane-style popup headers for Media Library, Quick jot, jot promotion, and Search.
+
+Hover previews pause during native file drags: pending previews are canceled, transient previews close, and pinned previews are hidden until the drag finishes. Media and Jots expose permission-checked local summary APIs for the Fokus status bar.
+
+Jots offers an account-checked local full-text search API for the Fokus search adapter. Individual mirrored notes can open in dedicated Jots panes while keeping edit, delete, and promotion actions available.

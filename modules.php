@@ -8,6 +8,7 @@ return [
     'imagepop' => ['name' => 'ImagePop', 'description' => 'Zoomable image galleries with configurable image selectors.', 'toggle' => true],
     'notegraph' => ['name' => 'NoteGraph', 'description' => 'Explore incoming and outgoing page links in a local graph.', 'toggle' => true],
     'preview' => ['name' => 'Page previews', 'description' => 'Scrollable wiki and Wikipedia hover windows. Drag the titlebar to pin a preview.', 'toggle' => true],
+    'media' => ['name' => 'Media Library', 'description' => 'Browse, insert, upload versions, move, rename, delete, and restore wiki media with references and image metadata.', 'toggle' => true],
     'snips' => ['name' => 'Snips', 'description' => 'Editor snippets and a searchable picker for existing wiki tags.', 'toggle' => true],
     'todoist' => ['name' => 'TodoistCompanion', 'description' => 'Page-linked tasks, due dates, and optional Todoist synchronization.', 'toggle' => true],
     'memos' => ['name' => 'Jots', 'description' => 'Quick capture, a searchable Memos timeline, tag filters, and a persistent local attachment mirror.', 'toggle' => true],

@@ -16,6 +16,7 @@ $conf['preview_width'] = 560;
 $conf['preview_height'] = 480;
 $conf['preview_open_delay'] = 750;
 $conf['preview_close_delay'] = 300;
+$conf['enabled_media'] = 1;
 $conf['enabled_snips'] = 1;
 $conf['enabled_todoist'] = 1;
 $conf['todoist_api_token'] = '';

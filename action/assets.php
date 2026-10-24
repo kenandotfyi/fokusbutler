@@ -14,11 +14,11 @@ class action_plugin_fokusbutler_assets extends DokuWiki_Action_Plugin
     {
         global $ACT, $INPUT;
         // Toolbar APIs also need to exist on show pages for Fokus's editor popup.
-        foreach (['snips', 'todoist'] as $module) {
+        foreach (['snips', 'todoist', 'media', 'imagepop'] as $module) {
             if (FokusButler_Modules::enabled($module)) FokusButler_Assets::add($event, $module);
         }
         if (in_array($ACT, ['show', 'preview'], true)) {
-            foreach (['content', 'folding', 'pagehealth', 'imagepop', 'notegraph', 'preview'] as $module) {
+            foreach (['content', 'folding', 'pagehealth', 'notegraph', 'preview'] as $module) {
                 if (FokusButler_Modules::enabled($module) || in_array($module, ['folding', 'pagehealth'], true)) {
                     FokusButler_Assets::add($event, $module, FokusButler_Modules::enabled($module));
                 }
@@ -36,7 +36,12 @@ class action_plugin_fokusbutler_assets extends DokuWiki_Action_Plugin
         $toolbar = new Doku_Event('TOOLBAR_DEFINE', $toolbarData);
         if (FokusButler_Modules::enabled('snips')) plugin_load('action', 'fokusbutler_snips')->addToolbarPicker($toolbar, null);
         if (FokusButler_Modules::enabled('todoist')) plugin_load('action', 'fokusbutler_todoist')->addToolbarButton($toolbar, null);
-        $event->data['script'][] = ['type' => 'text/javascript', '_data' => 'window.FokusButlerEditorConfig=' . json_encode(['toolbar' => $toolbar->data], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';'];
+        if (FokusButler_Modules::enabled('media')) plugin_load('action', 'fokusbutler_media')->addToolbarButton($toolbar, null);
+        $editorConfig = ['toolbar' => $toolbar->data];
+        if (FokusButler_Modules::enabled('media')) {
+            $editorConfig['media'] = ['ajaxUrl' => DOKU_BASE . 'lib/exe/ajax.php', 'namespace' => (string)getNS($GLOBALS['ID'] ?? ''), 'token' => getSecurityToken()];
+        }
+        $event->data['script'][] = ['type' => 'text/javascript', '_data' => 'window.FokusButlerEditorConfig=' . json_encode($editorConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';'];
         $src = DOKU_BASE . 'lib/plugins/fokusbutler/core/editor.js';
         if (!array_filter($event->data['script'] ?? [], static function ($asset) use ($src) { return ($asset['src'] ?? '') === $src; })) {
             $event->data['script'][] = ['type' => 'text/javascript', 'defer' => true, 'src' => $src];

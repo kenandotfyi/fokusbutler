@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const source=fs.readFileSync(path.join(__dirname,'../modules/memos/script.js'),'utf8');
+let provider,opened;
+const context={URL,location:new URL('https://wiki.example/doku.php?id=start'),config:{homeUrl:'https://wiki.example/doku.php?id=start'},window:{FokusPaneProviders:{register(value){provider=value;}}},buildPane(name){opened=name;return {};}};
+vm.runInNewContext(source.slice(source.indexOf('    function paneUrl('),source.indexOf('    window.FokusButlerJots =')),context);
+assert.equal(provider.matches('jots.inbox'),true);assert.equal(provider.matches('jots.memo.test-123'),true);assert.equal(provider.matches('jots.memo.../secret'),false);
+const url=provider.urlForId('jots.memo.test-123');assert.equal(new URL(url).searchParams.get('p'),'jots.memo.test-123');
+assert.equal(provider.fromUrl(url).id,'jots.memo.test-123');assert.equal(provider.fromLink({href:url}).id,'jots.memo.test-123');
+assert.equal(provider.fromUrl(url + '#section'),null,'In-note anchors retain their normal behavior');
+assert.equal(provider.fromUrl('https://evil.example/doku.php?p=jots.memo.test-123'),null);
+assert.equal(provider.fromUrl('https://wiki.example/other?p=jots.memo.test-123'),null);
+(async()=>{await provider.load('jots.memo.test-123');assert.equal(opened,'memos/test-123');await provider.load('jots.inbox');assert.equal(opened,null);console.log('PASS: individual Jot pane IDs, URL round-trip, copied-link routing, unsafe targets, and inbox compatibility.');})().catch(error=>{console.error(error);process.exitCode=1;});

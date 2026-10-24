@@ -41,6 +41,7 @@ $root = sys_get_temp_dir() . '/fokus-memos-test-' . bin2hex(random_bytes(8));
 try {
     $client = new MemosFixture();
     $store = new FokusButler_Memos_Store($client, $root, 'ken');
+    expect($store->summary()['total'] === null, 'An unsynced mirror is not an empty Memos account');
     $attachment = ['name' => 'attachments/image1', 'filename' => 'image.png', 'type' => 'image/png', 'size' => '17'];
     $first = ['name' => 'memos/first', 'content' => 'First #work', 'tags' => ['work'], 'attachments' => [$attachment]];
     $client->pages = [['memos' => [$first], 'nextPageToken' => 'page2'], ['memos' => [['name' => 'memos/second', 'content' => 'Second']]], ['memos' => [['name' => 'memos/archived', 'content' => 'Old', 'state' => 'ARCHIVED']]]];
@@ -52,6 +53,10 @@ try {
     expect(!$store->syncStep()['more'], 'Completed scan must publish');
     $snapshot = $store->snapshot();
     expect(count($snapshot['memos']) === 3, 'All active and archived notes must be present');
+    $callsBeforeSummary = count($client->calls);
+    expect($store->summary()['total'] === 3, 'Jots totals must include active and archived notes');
+    expect(count($client->calls) === $callsBeforeSummary, 'Status totals must not request remote Memos data');
+    expect((new FokusButler_Memos_Store($client, $root, 'other-user'))->summary()['total'] === null, 'Status totals must use the current user mirror');
     expect($snapshot['files']['attachments/image1']['cached'], 'Attachment must be cached locally');
     expect(is_file($store->file(hash('sha256', 'attachments/image1'))['path']), 'Private attachment lookup must work');
     expect(strpos($client->calls[1][1], 'pageToken=page2') !== false, 'Follow page tokens');
@@ -61,6 +66,7 @@ try {
     $client->pages = [new RuntimeException('Interrupted', 502)];
     fails(function () use ($store) { $store->syncStep(true); }, 502);
     expect(count($store->snapshot()['memos']) === 3, 'Failed refresh must retain previous mirror');
+    expect($store->summary()['total'] === 3 && $store->summary()['stale'], 'Failed sync retains and identifies cached status totals');
 
     $id = '12345678-1234-4234-8234-123456789abc';
     $client->offline = true;

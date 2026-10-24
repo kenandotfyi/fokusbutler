@@ -225,3 +225,7 @@
         right: 3.5rem;
     }
 }
+
+/* Native dialog top layer also supports previews inside modal libraries. */
+dialog.wiki-imagepop { box-sizing: border-box; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; border: 0; color: var(--wiki-imagepop-fg); }
+dialog.wiki-imagepop::backdrop { background: transparent; }

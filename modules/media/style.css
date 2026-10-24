@@ -1,0 +1,113 @@
+.fokus-media { box-sizing: border-box; width: min(1280px, calc(100vw - 48px)); height: min(820px, calc(100dvh - 48px)); min-width: min(760px, calc(100vw - 48px)); min-height: min(420px, calc(100dvh - 48px)); max-width: calc(100vw - 48px); max-height: calc(100dvh - 48px); resize: both; overflow: hidden; padding: 0; border: 1px solid var(--fokus-border, #ccc); border-radius: var(--fokus-radius, 4px); background: var(--fokus-surface, #fff); color: var(--fokus-text, #222); font: 14px/1.5 var(--fokus-body-font, system-ui, sans-serif); }
+.fokus-media[open] { display: flex; flex-direction: column; }
+.fokus-media::backdrop { background: rgb(0 0 0 / 35%); }
+.fokus-media *, .fokus-media *::before, .fokus-media *::after { box-sizing: border-box; }
+.fokus-media button, .fokus-media input, .fokus-media select { color: inherit; background: var(--fokus-control-background, #fff); border: 1px solid var(--fokus-border, #ccc); border-radius: 0; padding: 7px 10px; margin: 0; font: inherit; line-height: 1.4; }
+.fokus-media button { cursor: pointer; text-transform: none; box-shadow: none; }
+.fokus-media button:hover { background: var(--fokus-row-hover-background, #f3f3f3); }
+.fokus-media button:disabled { opacity: .5; cursor: default; }
+.fokus-media :focus-visible { outline: 2px solid var(--fokus-focus-border, #555); outline-offset: 2px; }
+.fokus-media .fokus-media-primary { background: var(--fokus-accent-soft, #eee); color: var(--fokus-text, #222); border-color: var(--fokus-accent, #555); }
+.fokus-media .fokus-media-primary:hover { filter: brightness(1.15); }
+.fokus-media h2, .fokus-media h3 { font-family: inherit; font-weight: 600; color: inherit; padding: 0; margin: 0; border: 0; }
+.fokus-media h2 { font-size: 18px; }
+.fokus-media h3 { font-size: 14px; overflow-wrap: anywhere; }
+.fokus-media-header { display: flex; align-items: center; justify-content: space-between; padding: .5rem .75rem; border-bottom: 1px solid var(--fokus-border, #ccc); flex-shrink: 0; }
+.fokus-media-body { display: grid; grid-template-columns: var(--fokus-media-sidebar-width, 18%) 6px minmax(180px, 1fr) 280px; min-height: 0; flex: 1; }
+.fokus-media-folders { overflow: auto; padding: 16px 0; min-width: 0; }
+.fokus-media-folders h3 { padding: 0 12px 12px; color: var(--fokus-muted, #666); }
+.fokus-media-folders button { display: block; text-align: left; width: 100%; border: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fokus-media-folders button[aria-current="location"] { background: var(--fokus-accent-soft, #eee); font-weight: 600; }
+.fokus-media-center { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 16px; }
+.fokus-media-bar { display: flex; gap: 10px; }
+.fokus-media-bar input[type="search"] { width: 100%; min-width: 0; }
+.fokus-media-bar button { flex-shrink: 0; }
+.fokus-media-location { margin-top: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.fokus-media-status { padding: 8px 0; color: var(--fokus-muted, #666); }
+.fokus-media-upload-status { white-space: pre-line; overflow: auto; max-height: 110px; overflow-wrap: anywhere; }
+.fokus-media progress { width: 100%; margin: 8px 0; flex-shrink: 0; }
+.fokus-media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); align-content: start; gap: 12px; overflow: auto; min-height: 0; padding: 3px; margin: -3px; flex: 1; }
+.fokus-media-grid .fokus-media-card { display: flex; flex-direction: column; align-items: stretch; min-width: 0; padding: 8px; gap: 5px; text-align: left; }
+.fokus-media-card[aria-pressed="true"] { outline: 2px solid var(--fokus-focus-border, #555); outline-offset: -2px; background: var(--fokus-accent-soft, #eee); }
+.fokus-media-card img, .fokus-media-card .fokus-media-filetype { width: 100%; height: 110px; object-fit: contain; background: var(--fokus-surface-soft, #f5f5f5); }
+.fokus-media-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.fokus-media-muted { color: var(--fokus-muted, #666); font-size: 12px; }
+.fokus-media-filetype { display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--fokus-muted, #666); min-height: 80px; }
+.fokus-media-paging { display: flex; gap: 8px; padding-top: 12px; }
+.fokus-media-paging:empty { display: none; }
+.fokus-media-detail { overflow: auto; padding: 16px; border-left: 1px solid var(--fokus-border, #ccc); }
+.fokus-media-preview { display: block; width: 100%; height: 170px; object-fit: contain; background: var(--fokus-surface-soft, #f5f5f5); margin: 0 0 14px; }
+.fokus-media-id, .fokus-media-syntax { display: block; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 12px; background: var(--fokus-surface-soft, #f5f5f5); color: inherit; padding: 8px; margin: 10px 0; }
+.fokus-media-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; margin: 14px 0; }
+.fokus-media-field input, .fokus-media-field select { width: 100%; min-width: 0; font-size: 14px; }
+.fokus-media-detail > button { width: 100%; }
+.fokus-media-footer { padding: 10px 18px; border-top: 1px solid var(--fokus-border, #ccc); font-size: 12px; color: var(--fokus-muted, #666); flex-shrink: 0; }
+@media (max-width: 950px) { .fokus-media-body { grid-template-columns: var(--fokus-media-sidebar-width, 18%) 6px minmax(180px, 1fr) 230px; } }
+@media (max-width: 720px) {
+    .fokus-media { width: calc(100vw - 16px); height: calc(100dvh - 16px); min-width: 0; min-height: 0; max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); resize: none; }
+    .fokus-media-body { grid-template-columns: 1fr; overflow: auto; display: block; }
+    .fokus-media-folders { display: flex; gap: 4px; padding: 8px; border: 0; border-bottom: 1px solid var(--fokus-border, #ccc); }
+    .fokus-media-splitter { display: none; }
+    .fokus-media-folders h3 { display: none; }
+    .fokus-media-folders button { width: auto; flex-shrink: 0; }
+    .fokus-media-center { min-height: 300px; }
+    .fokus-media-grid { max-height: 40dvh; min-height: 160px; }
+    .fokus-media-detail { border-left: 0; border-top: 1px solid var(--fokus-border, #ccc); }
+    .fokus-media-bar { flex-wrap: wrap; }
+}
+
+.fokus-media-splitter { cursor: col-resize; touch-action: none; background: var(--fokus-surface-soft, #f5f5f5); border-left: 1px solid var(--fokus-border, #ccc); border-right: 1px solid var(--fokus-border, #ccc); }
+.fokus-media-splitter:hover, .fokus-media-splitter:focus-visible { background: var(--fokus-focus-border, #888); }
+.fokus-media-usage { margin: 18px 0; padding-top: 12px; border-top: 1px solid var(--fokus-border, #ccc); }
+.fokus-media-usage ul { list-style: none; margin: 0; padding: 0; }
+.fokus-media-usage li { margin: 10px 0; overflow-wrap: anywhere; }
+.fokus-media-usage li span { display: block; }
+.fokus-media-usage a { text-decoration: underline; }
+.fokus-media-manage { display: block; margin-top: 12px; }
+.fokus-media-management { margin: 16px 0; padding-top: 12px; border-top: 1px solid var(--fokus-border, #ccc); }
+.fokus-media-file-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.fokus-media button.fokus-media-danger { color: var(--fokus-danger, #a21b24); }
+.fokus-media-history, .fokus-media-metadata { margin-top: 14px; }
+.fokus-media-history summary, .fokus-media-metadata summary { cursor: pointer; font-weight: 600; }
+.fokus-media-history > div { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin: 12px 0; }
+.fokus-media-folders button.is-drop-target { outline: 2px solid var(--fokus-focus-border, #555); outline-offset: -2px; background: var(--fokus-accent-soft, #eee); }
+.fokus-media-card[draggable="true"] { cursor: grab; }
+.fokus-media-confirm { width: min(520px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--fokus-border, #ccc); border-radius: 0; color: var(--fokus-text, #222); background: var(--fokus-surface, #fff); font: 14px/1.5 var(--fokus-body-font, system-ui, sans-serif); }
+.fokus-media-confirm::backdrop { background: rgb(0 0 0 / 30%); }
+.fokus-media-confirm h2 { margin: 0; font: 600 18px/1.4 var(--fokus-body-font, system-ui, sans-serif); }
+.fokus-media-confirm p { white-space: pre-line; overflow-wrap: anywhere; }
+.fokus-media-confirm label { display: flex; flex-direction: column; gap: 6px; }
+.fokus-media-confirm input, .fokus-media-confirm button { box-sizing: border-box; border: 1px solid var(--fokus-border, #ccc); border-radius: 0; padding: 8px 10px; color: inherit; background: var(--fokus-control-background, #fff); font: inherit; }
+.fokus-media-confirm input { width: 100%; }
+.fokus-media-confirm-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.fokus-media-confirm button { cursor: pointer; }
+.fokus-media-confirm button[type="submit"] { background: var(--fokus-vault-accent, #272727); color: var(--fokus-on-accent, #fff); }
+.fokus-media-compare { box-sizing: border-box; width: min(1100px, calc(100vw - 32px)); height: min(700px, calc(100dvh - 32px)); padding: 18px; border: 1px solid var(--fokus-border, #ccc); border-radius: 0; background: var(--fokus-surface, #fff); color: var(--fokus-text, #222); font: 14px/1.5 var(--fokus-body-font, system-ui, sans-serif); }
+.fokus-media-compare[open] { display: flex; flex-direction: column; }
+.fokus-media-compare::backdrop { background: rgb(0 0 0 / 35%); }
+.fokus-media-compare header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fokus-media-compare h2 { font: 600 18px/1.4 var(--fokus-body-font, system-ui, sans-serif); margin: 0; }
+.fokus-media-compare button { padding: 8px 10px; border: 1px solid var(--fokus-border, #ccc); border-radius: 0; background: var(--fokus-control-background, #fff); color: inherit; font: inherit; cursor: pointer; }
+.fokus-media-compare-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1; min-height: 0; margin-top: 16px; }
+.fokus-media-compare figure { display: flex; flex-direction: column; margin: 0; min-width: 0; min-height: 0; }
+.fokus-media-compare figcaption { padding: 8px; background: var(--fokus-surface-soft, #f5f5f5); }
+.fokus-media-compare img { width: 100%; min-height: 0; flex: 1; object-fit: contain; }
+
+.fokus-media .fokus-media-header h2 { font-size: 14px; }
+.fokus-media button:has(> .fokus-media-action-icon) { display: inline-flex; align-items: center; gap: 7px; }
+.fokus-media-action-icon { width: 18px; height: 18px; flex: none; }
+.fokus-media .fokus-media-new-namespace { display: flex; width: calc(100% - 16px); margin: 0 8px 12px; padding: 8px; background: var(--fokus-surface-soft); border: 1px solid var(--fokus-border); border-radius: var(--fokus-control-radius); }
+.fokus-media-tree { padding: 0 6px; }
+.fokus-media-tree-row { display: flex; align-items: center; min-width: 0; }
+.fokus-media-folders .fokus-media-tree-row button { min-width: 0; padding: 5px 6px; border-radius: var(--fokus-control-radius); font-size: 13px; font-weight: 400; }
+.fokus-media-folders .fokus-media-tree-toggle { width: 22px; flex: 0 0 22px; justify-content: center; padding: 5px 0; color: var(--fokus-muted); }
+.fokus-media-tree-row.is-leaf { padding-left: 22px; }
+.fokus-media-tree-children { margin-left: 11px; padding-left: 10px; border-left: 1px solid var(--fokus-border); }
+.fokus-media-tree-children[hidden] { display: none; }
+.fokus-media-preview-link { display: block; cursor: zoom-in; }
+.fokus-media-preview-link:focus-visible { outline: 2px solid var(--fokus-focus-border); }
+
+.fokus-media-tree-toggle img { width: 12px; height: 12px; transition: transform .12s ease; }
+.fokus-media-tree-toggle.is-expanded img { transform: rotate(90deg); }
+
+html[data-theme="dark"] .fokus-media-action-icon { filter: invert(.85); }
