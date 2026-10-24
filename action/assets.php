@@ -14,7 +14,7 @@ class action_plugin_fokusbutler_assets extends DokuWiki_Action_Plugin
     {
         global $ACT, $INPUT;
         // Toolbar APIs also need to exist on show pages for Fokus's editor popup.
-        foreach (['snips', 'todoist', 'media', 'imagepop'] as $module) {
+        foreach (['snips', 'todoist', 'media', 'imagepop', 'equations'] as $module) {
             if (FokusButler_Modules::enabled($module)) FokusButler_Assets::add($event, $module);
         }
         if (in_array($ACT, ['show', 'preview'], true)) {
@@ -37,6 +37,7 @@ class action_plugin_fokusbutler_assets extends DokuWiki_Action_Plugin
         if (FokusButler_Modules::enabled('snips')) plugin_load('action', 'fokusbutler_snips')->addToolbarPicker($toolbar, null);
         if (FokusButler_Modules::enabled('todoist')) plugin_load('action', 'fokusbutler_todoist')->addToolbarButton($toolbar, null);
         if (FokusButler_Modules::enabled('media')) plugin_load('action', 'fokusbutler_media')->addToolbarButton($toolbar, null);
+        if (FokusButler_Modules::enabled('equations')) plugin_load('action', 'fokusbutler_equations')->addToolbarButton($toolbar, null);
         $editorConfig = ['toolbar' => $toolbar->data];
         if (FokusButler_Modules::enabled('media')) {
             $editorConfig['media'] = ['ajaxUrl' => DOKU_BASE . 'lib/exe/ajax.php', 'namespace' => (string)getNS($GLOBALS['ID'] ?? ''), 'token' => getSecurityToken()];

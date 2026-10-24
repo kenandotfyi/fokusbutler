@@ -1,0 +1,40 @@
+@import url("vendor/mathlive-static.css");
+.fokus-equations { width: min(880px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--fokus-border, #ccc); border-radius: 0; background: var(--fokus-surface, #fff); color: var(--fokus-text, #222); font: 14px/1.5 system-ui, sans-serif; }
+.fokus-equations::backdrop { background: rgb(0 0 0 / 35%); }
+.fokus-equations header, .fokus-equations footer { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.fokus-equations header { justify-content: space-between; border-bottom: 1px solid var(--fokus-border, #ccc); }
+.fokus-equations h2 { margin: 0; padding: 0; border: 0; font: 600 18px system-ui, sans-serif; color: inherit; }
+.fokus-equations-body { padding: 16px; overflow: auto; }
+.fokus-equations button, .fokus-equations select { font: inherit; color: inherit; background: var(--fokus-surface, #fff); border: 1px solid var(--fokus-border, #ccc); border-radius: 0; padding: 7px 12px; cursor: pointer; margin: 0; text-transform: none; box-shadow: none; }
+.fokus-equations button:hover, .fokus-equations button[aria-pressed=true] { background: var(--fokus-accent-soft, #eee); }
+.fokus-equations button:disabled { opacity: .5; cursor: default; }
+.fokus-equations nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.fokus-equations-palette { display: flex; flex-wrap: wrap; gap: 8px; min-height: 92px; }
+.fokus-equations-palette button { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 7px; min-width: 85px; }
+.fokus-equations-palette button > span:first-child { font-size: 20px; }
+.fokus-equations-palette button > span:last-child { font-size: 12px; }
+.fokus-equations math-field { display: block; min-height: 96px; padding: 16px; margin: 14px 0; font-size: 26px; border: 1px solid var(--fokus-border, #ccc); border-radius: 0; background: var(--fokus-surface, #fff); color: inherit; }
+.fokus-equations textarea { box-sizing: border-box; width: 100%; min-height: 90px; margin-top: 8px; font: 14px/1.5 monospace; padding: 10px; color: inherit; background: var(--fokus-surface, #fff); border: 1px solid var(--fokus-border, #ccc); }
+.fokus-equations footer { border-top: 1px solid var(--fokus-border, #ccc); }
+.fokus-equations footer label { margin-right: auto; }
+.fokus-equations-status { min-height: 21px; margin-bottom: 0; }
+.fokus-equations :focus-visible { outline: 2px solid var(--fokus-focus-border, #555); outline-offset: 2px; }
+
+/* Keep active slots and selections light inside MathLive's shadow DOM. */
+.fokus-equations math-field {
+    --contains-highlight-background-color: gainsboro;
+    --selection-background-color: gainsboro;
+    --selection-color: #222;
+    --contains-highlight-color: #222;
+}
+
+/* The structure palette and physical keyboard provide equation input. */
+.fokus-equations math-field::part(virtual-keyboard-toggle) { display: none; }
+
+.fokus-equations-annotations { max-height: 260px; overflow-y: auto; align-content: flex-start; }
+.fokus-equations-annotations button { flex: 0 0 145px; min-height: 85px; }
+.fokus-equations-annotations button > span:last-child { max-width: 120px; overflow-wrap: anywhere; }
+
+.fokus-equations-searchbar { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.fokus-equations-search { box-sizing: border-box; width: 260px; max-width: 70%; margin: 0; padding: 6px 9px; border: 1px solid var(--fokus-border, #ccc); border-radius: 0; background: var(--fokus-surface, #fff); color: inherit; font: 14px/1.4 system-ui, sans-serif; }
+.fokus-equations-results { font-size: 12px; }

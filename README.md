@@ -23,6 +23,7 @@ Tag, Move, MoaiEditor, Preview, Annotations, and KaTeX remain external plugins. 
 | `notegraph` | Local graph from each page's banner, including additional panes |
 | `preview` | Full wiki and Wikipedia hover previews, scrolling, and titlebar drag-to-pin |
 | `media` | Media Library with pane links, namespace browsing, file management, version history, image metadata, and editor insertion. See [module guide](modules/media/README.md). |
+| `equations` | Visual equation builder, structure palette, inline/display LaTeX insertion and editing. See [module guide](modules/equations/README.md). |
 | `snips` | Configurable insert/wrap snippets and existing-tag picker |
 | `todoist` | `{{todoistcompanion>Task\|id=abcd1234}}`, due dates, completion, `~~TODOS~~` |
 | `memos` | Jots capture, Memos v0.31 timeline, tag filters, and a private local note/attachment mirror. See [module setup](modules/memos/README.md). |
@@ -88,6 +89,8 @@ Run integration checks against an isolated DokuWiki installation with this plugi
 ```sh
 DOKUWIKI_TEST_ROOT=/path/to/isolated/dokuwiki php tests/integration.php
 node tests/editor.cjs
+node tests/equations.cjs
+DOKUWIKI_TEST_ROOT=/path/to/isolated/dokuwiki php tests/equations.php
 node tests/media.cjs
 DOKUWIKI_TEST_ROOT=/path/to/isolated/dokuwiki php tests/media.php
 DOKUWIKI_TEST_ROOT=/path/to/isolated/dokuwiki php tests/media-management.php

@@ -4,7 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const script = fs.readFileSync(path.join(__dirname, '../core/editor.js'), 'utf8');
 const context = { window: {
-    toolbar: [{type:'format', title:'Core'}, {type:'fokusbutlersnips', list:[]}, {type:'external',title:'Other plugin'}, {type:'fokusbutlertodoist'}, {type:'fokusbutlermedia'}],
+    toolbar: [{type:'format', title:'Core'}, {type:'fokusbutlersnips', list:[]}, {type:'external',title:'Other plugin'}, {type:'fokusbutlertodoist'}, {type:'fokusbutlermedia'}, {type:'fokusbutlerequations'}],
     FokusButlerEditorConfig: {toolbar:[{type:'fokusbutlersnips',list:[{title:'Newly saved snippet'}]}]}
 }};
 vm.runInNewContext(script, context);
